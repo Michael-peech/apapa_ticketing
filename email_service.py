@@ -1,5 +1,6 @@
 import smtplib
 import os
+import time
 from email.message import EmailMessage
 from typing import Optional
 from datetime import datetime
@@ -10,7 +11,7 @@ SMTP_USER = os.getenv("SMTP_USER", "whitehatplayer2.0@gmail.com")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "kmax rvle fdwy ybeh")
 AFRICA_IT_SUPPORT = "oluwatobiloba69@gmail.com"
 
-def _send_email(subject: str, html_body: str, to_addrs: list, cc_addrs: Optional[list] = None):
+def _send_email(subject: str, html_body: str, to_addrs: list, cc_addrs: Optional[list] = None, max_retries: int = 3):
     msg = EmailMessage()
     msg['Subject'] = subject
     msg['From'] = SMTP_USER
@@ -22,20 +23,27 @@ def _send_email(subject: str, html_body: str, to_addrs: list, cc_addrs: Optional
     # Set the email content to render as HTML
     msg.set_content(html_body, subtype='html')
 
-    try:
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-            server.starttls()
-            server.login(SMTP_USER, SMTP_PASSWORD)
-            server.send_message(msg)
-            print(f"Successfully sent email: {subject}")
-    except Exception as e:
-        print(f"Failed to send email: {e}")
+    for attempt in range(max_retries):
+        try:
+            with smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=10) as server:
+                server.starttls()
+                server.login(SMTP_USER, SMTP_PASSWORD)
+                server.send_message(msg)
+                print(f"Successfully sent email: {subject}")
+                return  # Exit function immediately on success
+        except smtplib.SMTPServerDisconnected:
+            print(f"Attempt {attempt + 1}: SMTP server disconnected. Retrying in 2 seconds...")
+            time.sleep(2)
+        except Exception as e:
+            print(f"Attempt {attempt + 1}: Failed to send email - {e}")
+            time.sleep(2)
+            
+    print(f"CRITICAL ERROR: Failed to send email '{subject}' after {max_retries} attempts.")
 
 def send_initial_email(ticket):
     ticket_ref = ticket.olam_ticket_id if ticket.olam_ticket_id else f"Local ID {ticket.id}"
     subject = f"Incident: {ticket_ref} - {ticket.issue_category}"
     
-    # HTML template matching Olam Agri's ServiceNow dark theme ingestion email
     html_body = f"""
     <div style="font-family: Arial, sans-serif; background-color: #333333; padding: 20px; border-radius: 8px; max-width: 600px; color: #ffffff;">
         <h2 style="color: #f26522; border-bottom: 1px solid #555; padding-bottom: 10px;">Olam Agri</h2>
@@ -68,7 +76,6 @@ def send_resolution_email(ticket):
     subject = f"Resolved: {ticket_ref} - {ticket.issue_category}"
     current_time = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
     
-    # HTML template matching Olam Agri's ServiceNow dark theme resolution email
     html_body = f"""
     <div style="font-family: Arial, sans-serif; background-color: #333333; padding: 20px; border-radius: 8px; max-width: 600px; color: #ffffff;">
         <h2 style="color: #f26522; border-bottom: 1px solid #555; padding-bottom: 10px;">Olam Agri</h2>
