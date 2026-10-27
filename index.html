@@ -185,7 +185,7 @@
         <div class="panel" id="admin-panel" style="margin-top: 80px;">
             <h3 style="margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">Admin Controls</h3>
             <p style="font-size: 0.9em;">System reports and privilege escalation controls.</p>
-            <button class="btn-primary" onclick="alert('Spooling CSV Report...')">Spool Monthly Report</button>
+            <button class="btn-primary" onclick="downloadReport()">Spool Monthly Report</button>
         </div>
     </div>
 
@@ -361,6 +361,33 @@
                 loadActiveTickets();
             } else {
                 showToast("Error: Check minimum character requirements.", 'error');
+            }
+        }
+
+        // --- ADMIN OPERATIONS ---
+        async function downloadReport() {
+            showToast("Compiling database records...", "success");
+            
+            const res = await fetchWithAuth(`${API_URL}/reports/csv`);
+            
+            if (res.ok) {
+                // Convert the response to a downloadable file blob
+                const blob = await res.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = 'Apapa_IT_Report.csv';
+                
+                // Trigger the browser download
+                document.body.appendChild(a);
+                a.click();
+                
+                // Clean up
+                window.URL.revokeObjectURL(url);
+                showToast("Report downloaded successfully.");
+            } else {
+                showToast("Access Denied: Admin clearance required to spool reports.", "error");
             }
         }
 
