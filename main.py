@@ -1,3 +1,6 @@
+import csv
+import io
+from fastapi import Response
 from fastapi import FastAPI, Depends, HTTPException, status, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -148,3 +151,47 @@ def resolve_ticket(
     background_tasks.add_task(email_service.send_resolution_email, db_ticket)
 
     return db_ticket
+
+# 4. Admin Portal: CSV Report Spooling (Locked to Admins Only)
+@app.get("/reports/csv")
+def spool_csv_report(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role([models.UserRole.ADMIN]))
+):
+    # Retrieve all tickets from the database
+    tickets = db.query(models.Ticket).all()
+
+    # Create an in-memory string buffer for the CSV data
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    # Write the header row
+    writer.writerow([
+        "Ticket ID", "Olam Ref ID", "Plaintiff Name", "Plaintiff Email",
+        "Issue Category", "Symptoms/Description", "Assigned Tech", 
+        "Status", "Root Cause", "Resolution Steps", "Created At", "Resolved At"
+    ])
+
+    # Write the data rows
+    for t in tickets:
+        writer.writerow([
+            t.id,
+            t.olam_ticket_id or "N/A",
+            t.plaintiff_name,
+            t.plaintiff_email,
+            t.issue_category,
+            t.symptoms_description,
+            t.assigned_tech_email,
+            t.status.value if t.status else "Unknown",
+            t.root_cause or "N/A",
+            t.resolution_steps or "N/A",
+            t.created_at.strftime("%Y-%m-%d %H:%M:%S") if t.created_at else "N/A",
+            t.resolved_at.strftime("%Y-%m-%d %H:%M:%S") if t.resolved_at else "N/A"
+        ])
+
+    # Construct the file download response
+    response = Response(content=output.getvalue())
+    response.headers["Content-Disposition"] = "attachment; filename=Apapa_IT_Report.csv"
+    response.headers["Content-Type"] = "text/csv"
+    
+    return response
