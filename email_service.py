@@ -8,7 +8,7 @@ SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp.gmail.com")
 SMTP_PORT = int(os.getenv("SMTP_PORT", 587))
 SMTP_USER = os.getenv("SMTP_USER", "whitehatplayer2.0@gmail.com")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "kmax rvle fdwy ybeh")
-AFRICA_IT_SUPPORT = "Ridkidfrosh@gmail.com"
+AFRICA_IT_SUPPORT = "oluwatobiloba69@gmail.com"
 
 def _send_email(subject: str, html_body: str, to_addrs: list, cc_addrs: Optional[list] = None):
     msg = EmailMessage()
