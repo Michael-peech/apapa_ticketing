@@ -49,21 +49,30 @@
             border-radius: 4px; cursor: pointer; font-weight: bold; margin-top: 10px;
         }
         .btn-primary:hover { background-color: #d85515; }
+        .btn-excel { background-color: #217346; } /* Excel Green */
+        .btn-excel:hover { background-color: #175432; }
         
         /* --- MAIN APP DASHBOARD --- */
         #app-container {
             display: none;
-            width: 90%;
-            max-width: 1200px;
-            margin: 20px auto;
-            align-items: flex-start;
+            width: 95%;
+            max-width: 1400px;
+            margin: 100px auto 20px auto; 
+            flex-wrap: wrap;
             gap: 20px;
+            align-items: flex-start;
         }
         .panel {
             background: var(--surface-light); padding: 20px; border-radius: 4px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            flex: 1; border: 1px solid var(--border-color);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05); border: 1px solid var(--border-color);
+            box-sizing: border-box;
         }
+        
+        /* Specific Panel Sizing for Wrapping Grid */
+        #user-panel { flex: 1 1 300px; max-width: 350px; }
+        #tech-panel { flex: 2 1 500px; display: none; }
+        #admin-panel { flex: 1 1 100%; width: 100%; display: none; }
+
         .header-bar {
             display: flex; justify-content: space-between; align-items: center;
             width: 100%; background: #ffffff; color: var(--text-dark); padding: 15px 30px;
@@ -74,15 +83,11 @@
         .logout-btn { background: #eee; color: var(--text-dark); border: 1px solid #ccc; padding: 5px 15px; cursor: pointer; border-radius: 4px;}
         .logout-btn:hover { background: #ddd; }
         
-        /* Role Specific Containers */
-        #tech-panel, #admin-panel { display: none; }
-        
         /* Form & Ticket Styles */
         select, textarea, input[type="text"] { width: 100%; padding: 10px; margin-bottom: 15px; box-sizing: border-box; border: 1px solid var(--border-color); border-radius: 4px; font-family: inherit; }
         .ticket-card { border: 1px solid var(--border-color); padding: 15px; margin-bottom: 10px; border-radius: 4px; border-left: 4px solid var(--cfm-blue); background: #fafafa; }
         
         /* --- CORPORATE FLAT UI COMPONENTS --- */
-        /* Toast Notifications */
         #toast-container { position: fixed; top: 80px; right: 20px; z-index: 9999; }
         .toast {
             background: #333333; color: #ffffff; padding: 15px 25px; border-radius: 4px;
@@ -94,7 +99,6 @@
         .toast.success { border-left-color: #28a745; }
         .toast.error { border-left-color: #dc3545; }
 
-        /* Resolution Modal */
         .modal-overlay {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.5); z-index: 1000; justify-content: center; align-items: center;
@@ -159,7 +163,7 @@
         </div>
 
         <!-- LEVEL 1: Standard User Panel -->
-        <div class="panel" style="margin-top: 80px;">
+        <div class="panel" id="user-panel">
             <h3 style="margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">Raise IT Ticket</h3>
             <form id="ticket-form">
                 <input type="text" id="t-name" placeholder="Full Name" required>
@@ -175,32 +179,34 @@
         </div>
 
         <!-- LEVEL 2: Tech Panel -->
-        <div class="panel" id="tech-panel" style="margin-top: 80px;">
+        <div class="panel" id="tech-panel">
             <h3 style="margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">Active Queue</h3>
             <button class="logout-btn" onclick="loadActiveTickets()" style="margin-bottom: 15px;">Refresh Queue</button>
             <div id="ticket-queue"></div>
         </div>
 
         <!-- LEVEL 3: Admin Panel -->
-        <div class="panel" id="admin-panel" style="margin-top: 80px; width: 100%; box-sizing: border-box;">
+        <div class="panel" id="admin-panel">
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 15px;">
                 <h3 style="margin: 0; color: var(--text-dark);">Admin Executive Dashboard</h3>
                 <div style="display: flex; gap: 10px;">
                     <button class="btn-primary" style="margin-top: 0; width: auto; padding: 8px 15px; background-color: #555;" onclick="loadAdminDashboard()">Refresh Data</button>
-                    <button class="btn-primary" style="margin-top: 0; width: auto; padding: 8px 15px;" onclick="downloadPdfReport()">Export PDF Report</button>
+                    <button class="btn-primary btn-excel" style="margin-top: 0; width: auto; padding: 8px 15px;" onclick="downloadExcelReport()">Export Excel</button>
+                    <button class="btn-primary" style="margin-top: 0; width: auto; padding: 8px 15px;" onclick="downloadPdfReport()">Export PDF</button>
                 </div>
             </div>
             
             <div style="overflow-x: auto;">
-                <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9em; min-width: 800px;">
+                <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9em; min-width: 900px;">
                     <thead>
                         <tr style="background-color: var(--bg-light); border-bottom: 2px solid var(--olam-orange);">
                             <th style="padding: 12px 10px;">ID</th>
                             <th style="padding: 12px 10px;">Category</th>
                             <th style="padding: 12px 10px;">User</th>
+                            <th style="padding: 12px 10px;">Tech Assigned</th>
                             <th style="padding: 12px 10px;">Status</th>
                             <th style="padding: 12px 10px;">Root Cause Summary</th>
-                            <th style="padding: 12px 10px;">Resolved At</th>
+                            <th style="padding: 12px 10px;">SLA (Hrs)</th>
                         </tr>
                     </thead>
                     <tbody id="admin-table-body">
@@ -209,12 +215,12 @@
                 </table>
             </div>
         </div>
+    </div>
 
     <script>
         const API_URL = "http://127.0.0.1:8000";
         let activeTicketId = null;
 
-        // --- UI HELPERS ---
         function showToast(message, type = 'success') {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
@@ -254,7 +260,6 @@
             document.getElementById('resolve-modal').style.display = 'none';
         }
 
-        // --- AUTHENTICATION ---
         document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const email = document.getElementById('login-email').value;
@@ -324,7 +329,6 @@
             return fetch(url, { ...options, headers });
         }
 
-        // --- TICKET OPERATIONS ---
         async function submitTicket() {
             const payload = {
                 plaintiff_name: document.getElementById('t-name').value,
@@ -381,12 +385,15 @@
                 showToast("Ticket successfully resolved and logged.");
                 closeModal();
                 loadActiveTickets();
+                
+                if (document.getElementById('admin-panel').style.display === 'block') {
+                    loadAdminDashboard();
+                }
             } else {
                 showToast("Error: Check minimum character requirements.", 'error');
             }
         }
 
-        // --- ADMIN OPERATIONS ---
         async function loadAdminDashboard() {
             const res = await fetchWithAuth(`${API_URL}/reports/data`);
             if (res.ok) {
@@ -400,42 +407,58 @@
                     
                     const statusColor = t.status === 'Resolved' ? 'color: #28a745; font-weight: bold;' : 'color: #dc3545; font-weight: bold;';
                     const rca = t.root_cause ? (t.root_cause.length > 50 ? t.root_cause.substring(0, 50) + '...' : t.root_cause) : 'N/A';
-                    const resolved = t.resolved_at ? new Date(t.resolved_at).toLocaleString() : 'Pending';
+                    
+                    // SLA Calculation for live dashboard
+                    let sla = 'N/A';
+                    if (t.created_at && t.resolved_at) {
+                        const created = new Date(t.created_at);
+                        const resolved = new Date(t.resolved_at);
+                        const hrs = (resolved - created) / (1000 * 60 * 60);
+                        sla = hrs.toFixed(1) + 'h';
+                    }
+                    
+                    const tech = t.assigned_tech_email ? t.assigned_tech_email.split('@')[0] : 'Unassigned';
 
                     row.innerHTML = `
                         <td style="padding: 10px;">${t.id}</td>
                         <td style="padding: 10px;">${t.issue_category}</td>
                         <td style="padding: 10px;">${t.plaintiff_name}</td>
+                        <td style="padding: 10px;">${tech}</td>
                         <td style="padding: 10px; ${statusColor}">${t.status}</td>
-                        <td style="padding: 10px;">${rca}</td>
-                        <td style="padding: 10px;">${resolved}</td>
+                        <td style="padding: 10px; line-height: 1.4;">${rca}</td>
+                        <td style="padding: 10px;">${sla}</td>
                     `;
                     tbody.appendChild(row);
                 });
             }
         }
 
-        async function downloadPdfReport() {
-            showToast("Compiling PDF document...", "success");
-            
-            const res = await fetchWithAuth(`${API_URL}/reports/pdf`);
-            
+        async function triggerDownload(url, filename) {
+            const res = await fetchWithAuth(url);
             if (res.ok) {
                 const blob = await res.blob();
-                const url = window.URL.createObjectURL(blob);
+                const objectUrl = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.style.display = 'none';
-                a.href = url;
-                a.download = 'Olam_IT_Executive_Report.pdf';
-                
+                a.href = objectUrl;
+                a.download = filename;
                 document.body.appendChild(a);
                 a.click();
-                
-                window.URL.revokeObjectURL(url);
-                showToast("PDF downloaded successfully.");
+                window.URL.revokeObjectURL(objectUrl);
+                showToast(`${filename} downloaded successfully.`);
             } else {
-                showToast("Failed to compile PDF report.", "error");
+                showToast("Failed to compile report. Check console.", "error");
             }
+        }
+
+        function downloadPdfReport() {
+            showToast("Compiling PDF document...", "success");
+            triggerDownload(`${API_URL}/reports/pdf`, 'Olam_IT_Executive_Report.pdf');
+        }
+        
+        function downloadExcelReport() {
+            showToast("Compiling Excel spreadsheet...", "success");
+            triggerDownload(`${API_URL}/reports/excel`, 'Olam_IT_Operations_Report.xlsx');
         }
 
         window.onload = () => {
