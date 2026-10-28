@@ -12,6 +12,8 @@ from typing import List
 from fpdf import FPDF
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
+from pydantic import BaseModel, EmailStr
+
 
 import models, schemas, email_service
 from database import engine, get_db
@@ -296,3 +298,41 @@ def spool_excel_report(
     except Exception as e:
         print(f"CRITICAL EXCEL ERROR: {e}")
         raise HTTPException(status_code=500, detail="Failed to compile Excel report.")
+
+# Quick Schema for Admin User Creation
+class UserCreate(BaseModel):
+    email: EmailStr
+    password: str
+    role: models.UserRole
+
+# 7. User Portal: Fetch Logged-in User's Tickets
+@app.get("/tickets/me", response_model=List[schemas.TicketOut])
+def get_my_tickets(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    return db.query(models.Ticket).filter(models.Ticket.plaintiff_email == current_user.email).order_by(models.Ticket.id.desc()).all()
+
+# 8. Admin Portal: Grant Privileges / Create Users
+@app.post("/admin/users", status_code=status.HTTP_201_CREATED)
+def create_privileged_user(
+    user_data: UserCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role([models.UserRole.ADMIN]))
+):
+    # Import your password hashing context here (assuming pwd_context from your auth setup)
+    from database import pwd_context # Adjust import based on where your passlib context lives
+    
+    hashed_pw = pwd_context.hash(user_data.password)
+    new_user = models.User(
+        email=user_data.email,
+        hashed_password=hashed_pw,
+        role=user_data.role
+    )
+    try:
+        db.add(new_user)
+        db.commit()
+        return {"message": f"User {user_data.email} granted {user_data.role.value} access."}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Email already exists or invalid data.")
