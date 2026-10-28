@@ -8,181 +8,145 @@
         :root {
             --olam-orange: #f26522;
             --cfm-blue: #0033a0;
-            --bg-light: #f4f7f6;
+            --bg-light: #f8f9fa;
             --surface-light: #ffffff;
-            --text-dark: #333333;
-            --border-color: #dddddd;
-            --sidebar-width: 250px;
+            --text-dark: #2c3e50;
+            --border-color: #e2e8f0;
+            --sidebar-width: 260px;
         }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-light);
-            color: var(--text-dark);
-            margin: 0;
-            padding: 0;
-            min-height: 100vh;
+            background-color: var(--bg-light); color: var(--text-dark);
+            margin: 0; padding: 0; min-height: 100vh;
         }
 
-        /* --- AUTH GATE (SPLIT SCREEN) --- */
+        /* --- AUTH GATE (WATERMARK DESIGN) --- */
         #auth-wrapper {
-            display: flex;
-            width: 100vw;
-            height: 100vh;
-            background-color: var(--bg-light);
+            display: flex; justify-content: center; align-items: center;
+            width: 100vw; height: 100vh; background-color: #f1f5f9; position: relative; overflow: hidden;
         }
-        .auth-brand-side {
-            flex: 1;
-            background: linear-gradient(135deg, var(--cfm-blue) 0%, #001a57 100%);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            padding: 40px;
-            position: relative;
-            overflow: hidden;
-        }
-        .auth-brand-side::after {
-            content: ''; position: absolute; top: -50%; right: -50%; width: 100%; height: 100%;
-            background: rgba(242, 101, 34, 0.1); transform: rotate(45deg); pointer-events: none;
-        }
-        .auth-form-side {
-            flex: 1; display: flex; justify-content: center; align-items: center; background: white;
-        }
+        .watermark { position: absolute; pointer-events: none; opacity: 0.04; z-index: 1; }
+        .wm-olam { top: 10%; left: 5%; width: 450px; }
+        .wm-cfm { bottom: -10%; right: 5%; width: 500px; transform: rotate(-10deg); }
+        
         #auth-gate {
-            width: 100%; max-width: 400px; padding: 40px;
+            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);
+            width: 100%; max-width: 420px; padding: 50px 40px; border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.08); z-index: 10; text-align: center;
+            border-top: 6px solid var(--olam-orange);
         }
-        #auth-gate h2 { margin-top: 0; color: var(--text-dark); font-size: 2em; margin-bottom: 5px;}
-        #auth-gate p { color: #666; font-size: 1em; margin-bottom: 30px; }
+        #auth-gate h2 { margin: 0 0 10px 0; color: var(--text-dark); font-size: 1.8em; }
+        #auth-gate p { color: #64748b; font-size: 0.95em; margin-bottom: 30px; }
         .input-group { margin-bottom: 20px; text-align: left; }
-        .input-group label { display: block; margin-bottom: 8px; font-size: 0.9em; font-weight: bold; color: #555;}
+        .input-group label { display: block; margin-bottom: 8px; font-size: 0.85em; font-weight: 600; color: #475569;}
         .input-group input { 
-            width: 100%; padding: 12px; border-radius: 4px; border: 1px solid var(--border-color); 
-            background-color: #f9f9f9; color: var(--text-dark); box-sizing: border-box; transition: border 0.3s;
+            width: 100%; padding: 12px 15px; border-radius: 6px; border: 1px solid var(--border-color); 
+            background-color: #f8fafc; color: var(--text-dark); box-sizing: border-box; transition: all 0.3s;
         }
-        .input-group input:focus { border-color: var(--olam-orange); outline: none; }
+        .input-group input:focus { border-color: var(--olam-orange); background: white; outline: none; box-shadow: 0 0 0 3px rgba(242, 101, 34, 0.1); }
         .btn-primary {
             background-color: var(--olam-orange); color: white; border: none; padding: 12px 20px; width: 100%;
-            border-radius: 4px; cursor: pointer; font-weight: bold; margin-top: 10px; font-size: 1em; transition: background 0.3s;
+            border-radius: 6px; cursor: pointer; font-weight: 600; margin-top: 10px; font-size: 1em; transition: background 0.3s;
         }
         .btn-primary:hover { background-color: #d85515; }
-        .btn-excel { background-color: #217346; } 
-        .btn-excel:hover { background-color: #175432; }
 
-        /* --- DASHBOARD LAYOUT (SIDEBAR & MAIN) --- */
+        /* --- DASHBOARD LAYOUT --- */
         #app-container { display: none; width: 100vw; height: 100vh; overflow: hidden; }
         
         #sidebar {
             width: var(--sidebar-width); background-color: #1e1e2d; color: white;
             display: flex; flex-direction: column; height: 100vh; position: fixed; left: 0; top: 0;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.1); z-index: 100;
+            z-index: 100;
         }
-        .sidebar-header {
-            padding: 20px; background-color: #151521; text-align: center; border-bottom: 3px solid var(--olam-orange);
-        }
-        .nav-menu { flex: 1; padding: 20px 0; display: flex; flex-direction: column; gap: 5px; }
+        .sidebar-header { padding: 25px 20px; background-color: #151521; border-bottom: 1px solid #2b2b3d; }
+        .nav-menu { flex: 1; padding: 15px 0; display: flex; flex-direction: column; }
         .nav-btn {
-            background: transparent; color: #a2a3b7; border: none; padding: 15px 25px; text-align: left;
-            font-size: 1em; cursor: pointer; transition: all 0.2s; border-left: 4px solid transparent;
+            background: transparent; color: #a2a3b7; border: none; padding: 16px 25px; text-align: left;
+            font-size: 0.95em; cursor: pointer; transition: all 0.2s; border-left: 4px solid transparent;
         }
-        .nav-btn:hover { background-color: #2b2b3d; color: white; }
-        .nav-btn.active {
-            background-color: #2b2b3d; color: white; border-left-color: var(--olam-orange); font-weight: bold;
-        }
-        .user-info-box { padding: 20px; background-color: #151521; font-size: 0.85em; color: #a2a3b7; text-align: center; }
+        .nav-btn:hover { background-color: rgba(255,255,255,0.05); color: white; }
+        .nav-btn.active { background-color: #2b2b3d; color: white; border-left-color: var(--olam-orange); font-weight: 600; }
+        .user-info-box { padding: 20px; background-color: #151521; font-size: 0.85em; color: #a2a3b7; border-top: 1px solid #2b2b3d; }
 
         #main-content {
             margin-left: var(--sidebar-width); width: calc(100vw - var(--sidebar-width)); height: 100vh;
             background-color: var(--bg-light); overflow-y: auto; display: flex; flex-direction: column;
         }
         .top-header {
-            background: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05); z-index: 10;
+            background: white; padding: 15px 35px; display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid var(--border-color);
         }
-        .logout-btn { background: #eee; color: var(--text-dark); border: 1px solid #ccc; padding: 6px 15px; cursor: pointer; border-radius: 4px;}
-        .logout-btn:hover { background: #ddd; }
+        .logout-btn { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; padding: 8px 16px; font-weight: 600; cursor: pointer; border-radius: 6px; transition: 0.2s;}
+        .logout-btn:hover { background: #e2e8f0; color: #0f172a; }
 
         /* Panels */
-        .panel-container { padding: 30px; flex: 1; }
+        .panel-container { padding: 35px; flex: 1; max-width: 1200px; }
         .panel {
-            background: var(--surface-light); padding: 25px; border-radius: 6px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid var(--border-color);
-            display: none; animation: fadeIn 0.3s;
+            background: var(--surface-light); padding: 30px; border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03); 
+            border: 1px solid var(--border-color); display: none; animation: fadeIn 0.3s;
         }
         .panel.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* Form & Ticket Styles */
-        select, textarea, input[type="text"] { width: 100%; padding: 12px; margin-bottom: 20px; box-sizing: border-box; border: 1px solid var(--border-color); border-radius: 4px; font-family: inherit; }
-        .ticket-card { border: 1px solid var(--border-color); padding: 15px; margin-bottom: 15px; border-radius: 4px; border-left: 4px solid var(--cfm-blue); background: #fafafa; }
+        /* Form Elements */
+        select, textarea, input[type="text"] { width: 100%; padding: 12px; margin-bottom: 20px; box-sizing: border-box; border: 1px solid var(--border-color); border-radius: 6px; font-family: inherit; }
         
-        /* UI Components */
-        #toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; }
+        /* Modern Toasts */
+        #toast-container { position: fixed; top: 25px; right: 25px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
         .toast {
-            background: #333333; color: #ffffff; padding: 15px 25px; border-radius: 4px; margin-bottom: 10px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2); transform: translateX(120%); transition: transform 0.3s ease-out;
-            border-left: 4px solid var(--olam-orange); font-size: 0.95em;
+            background: rgba(255, 255, 255, 0.98); color: #1e293b; padding: 16px 24px; border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1); transform: translateX(120%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-left: 6px solid var(--olam-orange); font-size: 0.95em; font-weight: 500; display: flex; align-items: center;
         }
         .toast.show { transform: translateX(0); }
-        .toast.success { border-left-color: #28a745; }
-        .toast.error { border-left-color: #dc3545; }
+        .toast.success { border-left-color: #10b981; }
+        .toast.error { border-left-color: #ef4444; }
 
-        .modal-overlay {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.6); z-index: 1000; justify-content: center; align-items: center;
-        }
-        .modal-content {
-            background: var(--surface-light); color: var(--text-dark); padding: 30px; border-radius: 6px; 
-            width: 90%; max-width: 500px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); 
-            border: 1px solid var(--border-color); border-top: 4px solid var(--olam-orange);
-        }
-        .char-counter { font-size: 0.8em; color: #666; display: block; text-align: right; margin: -15px 0 20px 0; }
-        .char-counter.valid { color: #28a745; font-weight: bold; }
+        /* Modals & Misc */
+        .status-badge { padding: 4px 10px; border-radius: 20px; font-size: 0.8em; font-weight: bold; background: #e2e8f0; color: #475569; }
+        .status-resolved { background: #d1fae5; color: #065f46; }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-content { display: none; position: absolute; right: 0; background-color: white; min-width: 160px; box-shadow: 0 8px 16px rgba(0,0,0,0.1); border-radius: 6px; z-index: 1; border: 1px solid #eee; overflow: hidden; }
+        .dropdown-content a { color: black; padding: 12px 16px; text-decoration: none; display: block; cursor: pointer; font-size: 0.9em; }
+        .dropdown-content a:hover { background-color: #f1f5f9; }
+        .dropdown:hover .dropdown-content { display: block; }
     </style>
 </head>
 <body>
 
-    <!-- AUTHENTICATION GATE (SPLIT SCREEN) -->
+    <!-- AUTH GATE -->
     <div id="auth-wrapper">
-        <div class="auth-brand-side">
-            <!-- Ensure your images are named olam_logo.png and cfm_logo.png -->
-            <img src="olam_logo.png" alt="Olam Agri" style="max-width: 250px; margin-bottom: 30px; background: white; padding: 10px; border-radius: 8px;">
-            <img src="cfm_logo.png" alt="Crown Flour Mills" style="max-width: 180px; background: white; padding: 10px; border-radius: 8px; border-bottom: 4px solid red;">
-            <h3 style="margin-top: 40px; font-weight: normal;">Apapa Plant IT Infrastructure</h3>
-        </div>
-        <div class="auth-form-side">
-            <div id="auth-gate">
-                <h2>Welcome Back</h2>
-                <p>Sign in to the Service Desk Portal</p>
-                <form id="login-form">
-                    <div class="input-group">
-                        <label>Corporate Email</label>
-                        <input type="email" id="login-email" required placeholder="name@olamagri.com">
-                    </div>
-                    <div class="input-group">
-                        <label>Password</label>
-                        <input type="password" id="login-password" required>
-                    </div>
-                    <button type="submit" class="btn-primary">Secure Login</button>
-                </form>
-            </div>
+        <img src="olam_logo.png" class="watermark wm-olam" alt="Olam">
+        <img src="cfm_logo.png" class="watermark wm-cfm" alt="CFM">
+        
+        <div id="auth-gate">
+            <h2>Service Portal</h2>
+            <p>IT Infrastructure Issue Tracking</p>
+            <form id="login-form">
+                <div class="input-group">
+                    <label>Corporate Email</label>
+                    <input type="email" id="login-email" required placeholder="name@olamagri.com">
+                </div>
+                <div class="input-group">
+                    <label>Password</label>
+                    <input type="password" id="login-password" required>
+                </div>
+                <button type="submit" class="btn-primary">Secure Login</button>
+            </form>
         </div>
     </div>
 
     <!-- UI COMPONENTS -->
     <div id="toast-container"></div>
-    <div id="resolve-modal" class="modal-overlay">
-        <div class="modal-content">
+    <div id="resolve-modal" class="modal-overlay" style="display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.5); z-index:1000; justify-content:center; align-items:center;">
+        <div class="modal-content" style="background: white; padding: 30px; border-radius: 8px; width: 90%; max-width: 500px;">
             <h3 style="margin-top: 0;">Resolve Ticket #<span id="modal-ticket-id"></span></h3>
-            <label style="font-size: 0.9em; font-weight: bold; display: block; margin-bottom: 8px;">Root Cause Analysis</label>
-            <textarea id="rca-input" rows="3" placeholder="Enter root cause (Min 20 chars)" oninput="updateCounter('rca-input', 'rca-count', 20)"></textarea>
-            <span class="char-counter"><span id="rca-count">0</span> / 20 min characters</span>
-            <label style="font-size: 0.9em; font-weight: bold; display: block; margin-bottom: 8px;">Resolution Steps</label>
-            <textarea id="res-input" rows="3" placeholder="Enter resolution steps (Min 30 chars)" oninput="updateCounter('res-input', 'res-count', 30)"></textarea>
-            <span class="char-counter"><span id="res-count">0</span> / 30 min characters</span>
+            <textarea id="rca-input" rows="3" placeholder="Root cause (Min 20 chars)"></textarea>
+            <textarea id="res-input" rows="3" placeholder="Resolution steps (Min 30 chars)"></textarea>
             <div style="display: flex; gap: 10px;">
-                <button class="btn-primary" onclick="executeResolution()">Submit Resolution</button>
-                <button class="btn-primary" style="background-color: #888;" onclick="closeModal()">Cancel</button>
+                <button class="btn-primary" onclick="executeResolution()">Submit</button>
+                <button class="btn-primary" style="background: #888;" onclick="document.getElementById('resolve-modal').style.display='none'">Cancel</button>
             </div>
         </div>
     </div>
@@ -190,79 +154,111 @@
     <!-- MAIN DASHBOARD -->
     <div id="app-container">
         
-        <!-- SIDEBAR NAVIGATION -->
+        <!-- SIDEBAR -->
         <div id="sidebar">
             <div class="sidebar-header">
-                <strong style="color: var(--olam-orange); font-size: 1.2em;">Olam Agri</strong><br>
-                <span style="font-size: 0.8em; color: #a2a3b7;">IT Service Desk</span>
+                <strong style="color: var(--olam-orange); font-size: 1.3em;">Olam Agri</strong><br>
+                <span style="font-size: 0.85em; color: #a2a3b7;">Service Desk Operations</span>
             </div>
             <div class="nav-menu">
-                <button class="nav-btn active" id="nav-user" onclick="switchTab('user')">Raise Ticket</button>
+                <button class="nav-btn active" id="nav-profile" onclick="switchTab('profile')">My Profile</button>
+                <button class="nav-btn" id="nav-raise" onclick="switchTab('raise')">Raise Ticket</button>
+                <button class="nav-btn" id="nav-mytickets" onclick="switchTab('mytickets')">My Tickets</button>
                 <button class="nav-btn" id="nav-tech" style="display: none;" onclick="switchTab('tech')">Active Queue</button>
-                <button class="nav-btn" id="nav-admin" style="display: none;" onclick="switchTab('admin')">Executive Dashboard</button>
+                <button class="nav-btn" id="nav-users" style="display: none;" onclick="switchTab('users')">User Access</button>
+                <button class="nav-btn" id="nav-reports" style="display: none;" onclick="switchTab('reports')">Reports & Analytics</button>
             </div>
-            <div class="user-info-box">
-                Logged in as:<br><strong id="user-badge" style="color: white; margin-top: 5px; display: block;"></strong>
-            </div>
+            <div class="user-info-box" id="user-badge"></div>
         </div>
 
-        <!-- MAIN CONTENT AREA -->
+        <!-- MAIN CONTENT -->
         <div id="main-content">
             <div class="top-header">
-                <h3 id="current-tab-title" style="margin: 0;">Raise IT Ticket</h3>
+                <h3 id="current-tab-title" style="margin: 0; color: #0f172a;">My Profile</h3>
                 <button class="logout-btn" onclick="logout()">Sign Out</button>
             </div>
             
             <div class="panel-container">
                 
-                <!-- LEVEL 1: Standard User Panel -->
-                <div class="panel active" id="panel-user">
+                <!-- PROFILE TAB -->
+                <div class="panel active" id="panel-profile">
+                    <h3 style="border-bottom: 1px solid #eee; padding-bottom: 10px;">Account Information</h3>
+                    <p><strong>Corporate Email:</strong> <span id="prof-email"></span></p>
+                    <p><strong>System Clearance:</strong> <span id="prof-role" style="text-transform: uppercase;"></span></p>
+                    <p><strong>Status:</strong> Active</p>
+                </div>
+
+                <!-- RAISE TICKET TAB -->
+                <div class="panel" id="panel-raise">
                     <form id="ticket-form" style="max-width: 600px;">
-                        <label style="font-weight: bold; margin-bottom: 5px; display: block;">Full Name</label>
+                        <label style="font-weight: 600; margin-bottom: 5px; display: block;">Full Name</label>
                         <input type="text" id="t-name" placeholder="John Doe" required>
-                        <label style="font-weight: bold; margin-bottom: 5px; display: block;">Corporate Email</label>
-                        <input type="text" id="t-email" placeholder="john.doe@olamagri.com" required>
-                        <label style="font-weight: bold; margin-bottom: 5px; display: block;">Issue Category</label>
+                        <label style="font-weight: 600; margin-bottom: 5px; display: block;">Issue Category</label>
                         <select id="t-category">
-                            <option>Hardware</option>
-                            <option>Network</option>
-                            <option>Software</option>
+                            <option>Hardware</option><option>Network</option><option>Software</option>
                         </select>
-                        <label style="font-weight: bold; margin-bottom: 5px; display: block;">Symptoms / Description</label>
-                        <textarea id="t-desc" rows="5" placeholder="Describe the issue in detail..." required></textarea>
-                        <button type="button" class="btn-primary" onclick="submitTicket()" style="background-color: var(--cfm-blue); max-width: 200px;">Submit Ticket</button>
+                        <label style="font-weight: 600; margin-bottom: 5px; display: block;">Symptoms / Description</label>
+                        <textarea id="t-desc" rows="5" placeholder="Describe the issue..." required></textarea>
+                        <button type="button" class="btn-primary" onclick="submitTicket()" style="max-width: 200px;">Submit Ticket</button>
                     </form>
                 </div>
 
-                <!-- LEVEL 2: Tech Panel -->
+                <!-- MY TICKETS TAB (History & Tracking) -->
+                <div class="panel" id="panel-mytickets">
+                    <button class="logout-btn" onclick="loadMyTickets()" style="margin-bottom: 20px;">Refresh History</button>
+                    <div id="my-tickets-list" style="display: flex; flex-direction: column; gap: 15px;"></div>
+                </div>
+
+                <!-- TECH QUEUE TAB -->
                 <div class="panel" id="panel-tech">
                     <button class="logout-btn" onclick="loadActiveTickets()" style="margin-bottom: 20px;">Refresh Queue</button>
                     <div id="ticket-queue" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px;"></div>
                 </div>
 
-                <!-- LEVEL 3: Admin Panel -->
-                <div class="panel" id="panel-admin">
-                    <div style="display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 20px;">
-                        <button class="btn-primary" style="margin: 0; width: auto; padding: 8px 15px; background-color: #555;" onclick="loadAdminDashboard()">Refresh Data</button>
-                        <button class="btn-primary btn-excel" style="margin: 0; width: auto; padding: 8px 15px;" onclick="downloadExcelReport()">Export Excel</button>
-                        <button class="btn-primary" style="margin: 0; width: auto; padding: 8px 15px;" onclick="downloadPdfReport()">Export PDF</button>
+                <!-- USER MANAGEMENT TAB (Admin) -->
+                <div class="panel" id="panel-users">
+                    <h3 style="border-bottom: 1px solid #eee; padding-bottom: 10px;">Grant System Access</h3>
+                    <form id="user-form" style="max-width: 500px;">
+                        <input type="email" id="u-email" placeholder="Employee Email" style="width: 100%; padding: 10px; margin-bottom: 15px;" required>
+                        <input type="password" id="u-pass" placeholder="Temporary Password" style="width: 100%; padding: 10px; margin-bottom: 15px;" required>
+                        <select id="u-role" style="width: 100%; padding: 10px; margin-bottom: 15px;">
+                            <option value="user">Standard User</option>
+                            <option value="tech">Technician</option>
+                            <option value="admin">Administrator</option>
+                        </select>
+                        <button type="button" class="btn-primary" onclick="grantAccess()">Create Account</button>
+                    </form>
+                </div>
+
+                <!-- REPORTS TAB (Admin) -->
+                <div class="panel" id="panel-reports">
+                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 25px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <h3 style="margin: 0 0 5px 0;">Executive Summary</h3>
+                            <p style="margin: 0; color: #64748b;">Access full resolution history and generate compliance documents.</p>
+                        </div>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="logout-btn" onclick="document.getElementById('report-table-wrapper').style.display='block'; loadAdminDashboard();">Preview Data</button>
+                            <div class="dropdown">
+                                <button class="btn-primary" style="margin: 0; padding: 8px 16px;">Export Report ▼</button>
+                                <div class="dropdown-content">
+                                    <a onclick="triggerDownload('/reports/excel', 'Olam_IT_Report.xlsx')">Excel (.xlsx)</a>
+                                    <a onclick="triggerDownload('/reports/pdf', 'Olam_IT_Report.pdf')">PDF Document</a>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div style="overflow-x: auto; background: white; border: 1px solid var(--border-color); border-radius: 4px;">
+
+                    <div id="report-table-wrapper" style="display: none; overflow-x: auto; border: 1px solid var(--border-color); border-radius: 6px;">
                         <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9em; min-width: 900px;">
                             <thead>
-                                <tr style="background-color: #f9f9f9; border-bottom: 2px solid var(--olam-orange);">
-                                    <th style="padding: 12px 15px;">ID</th>
-                                    <th style="padding: 12px 15px;">Category</th>
-                                    <th style="padding: 12px 15px;">User</th>
-                                    <th style="padding: 12px 15px;">Tech Assigned</th>
-                                    <th style="padding: 12px 15px;">Status</th>
-                                    <th style="padding: 12px 15px;">Root Cause Summary</th>
-                                    <th style="padding: 12px 15px;">SLA (Hrs)</th>
+                                <tr style="background-color: #f1f5f9; border-bottom: 2px solid var(--border-color);">
+                                    <th style="padding: 12px;">ID</th><th style="padding: 12px;">Category</th>
+                                    <th style="padding: 12px;">User</th><th style="padding: 12px;">Status</th>
+                                    <th style="padding: 12px;">SLA (Hrs)</th>
                                 </tr>
                             </thead>
-                            <tbody id="admin-table-body">
-                                <!-- Populated by JavaScript -->
-                            </tbody>
+                            <tbody id="admin-table-body"></tbody>
                         </table>
                     </div>
                 </div>
@@ -274,24 +270,21 @@
     <script>
         const API_URL = "http://127.0.0.1:8000";
         let activeTicketId = null;
+        let currentUserEmail = "";
 
-        // --- UI HELPERS & TABBING ---
-        function switchTab(tabName) {
-            // Update Nav Buttons
+        // UI HELPERS
+        function switchTab(tab) {
             document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
-            document.getElementById(`nav-${tabName}`).classList.add('active');
+            document.getElementById(`nav-${tab}`).classList.add('active');
             
-            // Update Header Title
-            const titles = { 'user': 'Raise IT Ticket', 'tech': 'Active Technician Queue', 'admin': 'Executive Dashboard' };
-            document.getElementById('current-tab-title').innerText = titles[tabName];
+            const titles = { 'profile': 'My Profile', 'raise': 'Raise IT Ticket', 'mytickets': 'My Ticket History', 'tech': 'Active Technician Queue', 'users': 'User Access Management', 'reports': 'Reports & Analytics' };
+            document.getElementById('current-tab-title').innerText = titles[tab];
 
-            // Show Panel
             document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-            document.getElementById(`panel-${tabName}`).classList.add('active');
+            document.getElementById(`panel-${tab}`).classList.add('active');
 
-            // Fetch data if necessary
-            if (tabName === 'tech') loadActiveTickets();
-            if (tabName === 'admin') loadAdminDashboard();
+            if (tab === 'mytickets') loadMyTickets();
+            if (tab === 'tech') loadActiveTickets();
         }
 
         function showToast(message, type = 'success') {
@@ -301,113 +294,90 @@
             toast.innerText = message;
             container.appendChild(toast);
             setTimeout(() => toast.classList.add('show'), 10);
-            setTimeout(() => {
-                toast.classList.remove('show');
-                setTimeout(() => toast.remove(), 300);
-            }, 3000);
+            setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); }, 3500);
         }
 
-        function updateCounter(inputId, counterId, minLimit) {
-            const length = document.getElementById(inputId).value.length;
-            const counterSpan = document.getElementById(counterId);
-            counterSpan.innerText = length;
-            if (length >= minLimit) counterSpan.parentElement.classList.add('valid');
-            else counterSpan.parentElement.classList.remove('valid');
-        }
-
-        function openResolveModal(id) {
-            activeTicketId = id;
-            document.getElementById('modal-ticket-id').innerText = id;
-            document.getElementById('rca-input').value = '';
-            document.getElementById('res-input').value = '';
-            updateCounter('rca-input', 'rca-count', 20);
-            updateCounter('res-input', 'res-count', 30);
-            document.getElementById('resolve-modal').style.display = 'flex';
-        }
-        function closeModal() { document.getElementById('resolve-modal').style.display = 'none'; }
-
-        // --- AUTHENTICATION ---
+        // AUTHENTICATION (Using sessionStorage for persistence fix)
         document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const email = document.getElementById('login-email').value;
-            const password = document.getElementById('login-password').value;
             const formData = new URLSearchParams();
-            formData.append("username", email);
-            formData.append("password", password);
+            formData.append("username", document.getElementById('login-email').value);
+            formData.append("password", document.getElementById('login-password').value);
 
             try {
-                const response = await fetch(`${API_URL}/token`, {
-                    method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: formData
-                });
+                const response = await fetch(`${API_URL}/token`, { method: 'POST', body: formData });
                 if (response.ok) {
                     const data = await response.json();
-                    localStorage.setItem('access_token', data.access_token);
+                    sessionStorage.setItem('access_token', data.access_token);
                     initializeDashboard(data.access_token);
-                } else { alert("Authentication Failed: Invalid credentials."); }
-            } catch (error) { alert("Server unreachable. Is Uvicorn running?"); }
+                } else { showToast("Authentication Failed.", "error"); }
+            } catch (error) { showToast("Server offline.", "error"); }
         });
 
-        function parseJwt(token) {
-            try { return JSON.parse(window.atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))); } 
-            catch (e) { return null; }
-        }
-
         function initializeDashboard(token) {
-            const payload = parseJwt(token);
+            const payload = JSON.parse(window.atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
             if (!payload) return;
 
+            currentUserEmail = payload.sub;
             document.getElementById('auth-wrapper').style.display = 'none';
             document.getElementById('app-container').style.display = 'flex';
-            document.getElementById('user-badge').innerText = `${payload.sub}\n[${payload.role.toUpperCase()}]`;
+            document.getElementById('user-badge').innerHTML = `${payload.sub}<br><span style="color:var(--olam-orange);font-weight:bold;">[${payload.role.toUpperCase()}]</span>`;
+            
+            // Populate Profile Data
+            document.getElementById('prof-email').innerText = payload.sub;
+            document.getElementById('prof-role').innerText = payload.role;
 
-            // Reveal side-nav buttons based on clearance
-            if (payload.role === 'tech' || payload.role === 'admin') {
-                document.getElementById('nav-tech').style.display = 'block';
-            }
+            if (payload.role === 'tech' || payload.role === 'admin') document.getElementById('nav-tech').style.display = 'block';
             if (payload.role === 'admin') {
-                document.getElementById('nav-admin').style.display = 'block';
-                // Admins default to dashboard
-                switchTab('admin');
-            } else if (payload.role === 'tech') {
-                // Techs default to queue
-                switchTab('tech');
-            } else {
-                // Users default to ticket form
-                switchTab('user');
+                document.getElementById('nav-users').style.display = 'block';
+                document.getElementById('nav-reports').style.display = 'block';
             }
+            switchTab('profile');
         }
 
-        function logout() {
-            localStorage.removeItem('access_token');
-            location.reload();
-        }
+        function logout() { sessionStorage.removeItem('access_token'); location.reload(); }
 
         async function fetchWithAuth(url, options = {}) {
-            const headers = {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-                ...options.headers
-            };
-            return fetch(url, { ...options, headers });
+            return fetch(url, { ...options, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionStorage.getItem('access_token')}` }});
         }
 
-        // --- TICKET OPERATIONS ---
+        // TICKETS
         async function submitTicket() {
             const payload = {
-                plaintiff_name: document.getElementById('t-name').value,
-                plaintiff_email: document.getElementById('t-email').value,
-                issue_category: document.getElementById('t-category').value,
-                symptoms_description: document.getElementById('t-desc').value
+                plaintiff_name: document.getElementById('t-name').value, plaintiff_email: currentUserEmail,
+                issue_category: document.getElementById('t-category').value, symptoms_description: document.getElementById('t-desc').value
             };
             const res = await fetchWithAuth(`${API_URL}/tickets/`, { method: 'POST', body: JSON.stringify(payload) });
+            if (res.ok) { showToast("Ticket Created!"); document.getElementById('ticket-form').reset(); switchTab('mytickets'); } 
+            else { showToast("Failed to create.", 'error'); }
+        }
+
+        async function loadMyTickets() {
+            const res = await fetchWithAuth(`${API_URL}/tickets/me`);
             if (res.ok) {
-                showToast("Ticket Created & Email Dispatched!");
-                document.getElementById('ticket-form').reset();
-            } else { showToast("Failed to create ticket.", 'error'); }
+                const tickets = await res.json();
+                const list = document.getElementById('my-tickets-list');
+                list.innerHTML = tickets.length === 0 ? "<p>No ticket history found.</p>" : "";
+                tickets.forEach(t => {
+                    const badge = t.status === 'Resolved' ? 'status-resolved' : '';
+                    list.innerHTML += `
+                        <div style="border: 1px solid #e2e8f0; padding: 20px; border-radius: 8px; background: white; display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <strong style="color: var(--cfm-blue);">ID: ${t.id} - ${t.issue_category}</strong>
+                                <p style="margin: 5px 0 0 0; font-size: 0.9em; color: #64748b;">${t.symptoms_description.substring(0,60)}...</p>
+                            </div>
+                            <div style="text-align: right;">
+                                <span class="status-badge ${badge}">Progress: ${t.status}</span>
+                                <p style="margin: 5px 0 0 0; font-size: 0.8em; color: #94a3b8;">Created: ${new Date(t.created_at).toLocaleDateString()}</p>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
         }
 
         async function loadActiveTickets() {
-            const res = await fetchWithAuth(`${API_URL}/tickets/active?tech_email=makabogu55@gmail.com`);
+            const res = await fetchWithAuth(`${API_URL}/tickets/active?tech_email=${currentUserEmail}`);
             if (res.ok) {
                 const tickets = await res.json();
                 const queue = document.getElementById('ticket-queue');
@@ -416,10 +386,7 @@
                     queue.innerHTML += `
                         <div class="ticket-card">
                             <strong style="color: var(--cfm-blue);">ID: ${t.id} - ${t.issue_category}</strong>
-                            <div style="margin: 10px 0; font-size: 0.9em; color: #555;">
-                                <strong>User:</strong> ${t.plaintiff_name}<br>
-                                <strong>Desc:</strong> ${t.symptoms_description}
-                            </div>
+                            <div style="margin: 10px 0; font-size: 0.9em; color: #555;"><strong>User:</strong> ${t.plaintiff_name}</div>
                             <button class="btn-primary" style="width: 100%; padding: 8px;" onclick="openResolveModal(${t.id})">Resolve</button>
                         </div>
                     `;
@@ -429,21 +396,19 @@
 
         async function executeResolution() {
             const res = await fetchWithAuth(`${API_URL}/tickets/${activeTicketId}/resolve`, {
-                method: 'PATCH',
-                body: JSON.stringify({ 
-                    root_cause: document.getElementById('rca-input').value, 
-                    resolution_steps: document.getElementById('res-input').value, 
-                    status: 'Resolved' 
-                })
+                method: 'PATCH', body: JSON.stringify({ root_cause: document.getElementById('rca-input').value, resolution_steps: document.getElementById('res-input').value, status: 'Resolved' })
             });
-            if (res.ok) {
-                showToast("Ticket successfully resolved.");
-                closeModal();
-                loadActiveTickets();
-            } else { showToast("Error: Check minimum character requirements.", 'error'); }
+            if (res.ok) { showToast("Resolved."); document.getElementById('resolve-modal').style.display='none'; loadActiveTickets(); }
         }
 
-        // --- ADMIN DASHBOARD ---
+        // ADMIN FUNCTIONS
+        async function grantAccess() {
+            const payload = { email: document.getElementById('u-email').value, password: document.getElementById('u-pass').value, role: document.getElementById('u-role').value };
+            const res = await fetchWithAuth(`${API_URL}/admin/users`, { method: 'POST', body: JSON.stringify(payload) });
+            if (res.ok) { showToast("Access granted successfully."); document.getElementById('user-form').reset(); }
+            else { showToast("Failed. Email may already exist.", "error"); }
+        }
+
         async function loadAdminDashboard() {
             const res = await fetchWithAuth(`${API_URL}/reports/data`);
             if (res.ok) {
@@ -451,49 +416,31 @@
                 const tbody = document.getElementById('admin-table-body');
                 tbody.innerHTML = '';
                 tickets.forEach(t => {
-                    const row = document.createElement('tr');
-                    row.style.borderBottom = '1px solid #eee';
-                    const statusColor = t.status === 'Resolved' ? 'color: #28a745; font-weight: bold;' : 'color: #dc3545; font-weight: bold;';
-                    const rca = t.root_cause ? (t.root_cause.length > 50 ? t.root_cause.substring(0, 50) + '...' : t.root_cause) : 'N/A';
-                    
+                    const statusColor = t.status === 'Resolved' ? 'color: #10b981; font-weight: bold;' : 'color: #ef4444; font-weight: bold;';
                     let sla = 'N/A';
-                    if (t.created_at && t.resolved_at) {
-                        sla = ((new Date(t.resolved_at) - new Date(t.created_at)) / (1000 * 60 * 60)).toFixed(1) + 'h';
-                    }
-                    const tech = t.assigned_tech_email ? t.assigned_tech_email.split('@')[0] : 'Unassigned';
-
-                    row.innerHTML = `
-                        <td style="padding: 15px;">${t.id}</td>
-                        <td style="padding: 15px;">${t.issue_category}</td>
-                        <td style="padding: 15px;">${t.plaintiff_name}</td>
-                        <td style="padding: 15px;">${tech}</td>
-                        <td style="padding: 15px; ${statusColor}">${t.status}</td>
-                        <td style="padding: 15px; line-height: 1.4; color: #555;">${rca}</td>
-                        <td style="padding: 15px;">${sla}</td>
+                    if (t.created_at && t.resolved_at) sla = ((new Date(t.resolved_at) - new Date(t.created_at)) / 3600000).toFixed(1) + 'h';
+                    tbody.innerHTML += `
+                        <tr style="border-bottom: 1px solid #eee;">
+                            <td style="padding: 12px;">${t.id}</td><td style="padding: 12px;">${t.issue_category}</td>
+                            <td style="padding: 12px;">${t.plaintiff_name}</td><td style="padding: 12px; ${statusColor}">${t.status}</td>
+                            <td style="padding: 12px;">${sla}</td>
+                        </tr>
                     `;
-                    tbody.appendChild(row);
                 });
             }
         }
 
-        async function triggerDownload(url, filename) {
-            const res = await fetchWithAuth(url);
+        async function triggerDownload(endpoint, filename) {
+            const res = await fetchWithAuth(API_URL + endpoint);
             if (res.ok) {
                 const blob = await res.blob();
-                const objectUrl = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = objectUrl; a.download = filename;
-                document.body.appendChild(a); a.click();
-                window.URL.revokeObjectURL(objectUrl);
-                showToast(`${filename} downloaded.`);
-            } else { showToast("Failed to compile report.", "error"); }
+                const a = document.createElement('a'); a.href = window.URL.createObjectURL(blob); a.download = filename;
+                document.body.appendChild(a); a.click(); a.remove(); showToast(`${filename} exported.`);
+            }
         }
 
-        function downloadPdfReport() { triggerDownload(`${API_URL}/reports/pdf`, 'Olam_IT_Executive_Report.pdf'); }
-        function downloadExcelReport() { triggerDownload(`${API_URL}/reports/excel`, 'Olam_IT_Operations_Report.xlsx'); }
-
         window.onload = () => {
-            const token = localStorage.getItem('access_token');
+            const token = sessionStorage.getItem('access_token');
             if (token) initializeDashboard(token);
         };
     </script>
