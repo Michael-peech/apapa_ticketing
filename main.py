@@ -20,6 +20,21 @@ models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Apapa IT Ticket MVP")
 
+@app.on_event("startup")
+def create_initial_admin():
+    db = next(get_db())
+    admin_exists = db.query(models.User).filter(models.User.email == "admin@olamagri.com").first()
+    if not admin_exists:
+        admin_user = models.User(
+            email="admin@olamagri.com",
+            hashed_password=get_password_hash("admin123"),
+            role=models.UserRole.ADMIN,
+            base_plant="Apapa"
+        )
+        db.add(admin_user)
+        db.commit()
+        print("Default admin account created: admin@olamagri.com / admin123")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  
