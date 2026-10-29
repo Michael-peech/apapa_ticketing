@@ -86,19 +86,23 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
         )
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.email, "role": user.role.value if hasattr(user.role, 'value') else user.role}, 
+        data={
+            "sub": user.email, 
+            "role": user.role.value if hasattr(user.role, 'value') else user.role,
+            "base_plant": getattr(user, 'base_plant', 'Apapa')
+        }, 
         expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
-# --- ROUTING LOGIC ---
-def assign_technician(category: str) -> str:
+# --- ROUTING LOGIC (Upgraded to Location-Based Triage) ---
+def assign_technician(location: str) -> str:
     routing_table = {
-        "Hardware": "makabogu55@gmail.com",
-        "Network": "network.apapa@olamagri.com",
-        "Software": "appsupport.apapa@olamagri.com"
+        "Apapa": "makabogu55@gmail.com",
+        "Tincan": "tincan.it@olamagri.com",
+        "Ikorodu": "ikorodu.it@olamagri.com"
     }
-    return routing_table.get(category, "africaITsupport@olamagri.com")
+    return routing_table.get(location, "africaITsupport@olamagri.com")
 
 
 # --- APPLICATION ROUTES ---
@@ -111,7 +115,7 @@ def create_ticket(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-    assigned_tech = assign_technician(ticket.issue_category)
+    assigned_tech = assign_technician(ticket.plant_location)
     db_ticket = models.Ticket(
         **ticket.model_dump(),
         assigned_tech_email=assigned_tech
@@ -294,11 +298,11 @@ def spool_excel_report(
 
 # --- NEW ENDPOINTS (My Tickets & User Creation) ---
 
-# Schema explicitly uses standard strings to prevent validation crashes
 class UserCreate(BaseModel):
     email: str 
     password: str
     role: str
+    base_plant: str
 
 @app.get("/tickets/me", response_model=List[schemas.TicketOut])
 def get_my_tickets(
@@ -315,13 +319,13 @@ def create_privileged_user(
     current_user: models.User = Depends(require_role([models.UserRole.ADMIN]))
 ):
     try:
-        # Cast the string back to your SQLAlchemy Enum model
         role_enum = models.UserRole(user_data.role)
         
         new_user = models.User(
             email=user_data.email,
             hashed_password=get_password_hash(user_data.password),
-            role=role_enum
+            role=role_enum,
+            base_plant=user_data.base_plant
         )
         db.add(new_user)
         db.commit()
