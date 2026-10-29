@@ -21,6 +21,7 @@ class Ticket(Base):
     # Ingestion (User Portal)
     plaintiff_name = Column(String, nullable=False)
     plaintiff_email = Column(String, nullable=False)
+    plant_location = Column(String, default="Apapa")
     issue_category = Column(String, nullable=False)
     symptoms_description = Column(Text, nullable=False)
 
@@ -51,3 +52,4 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     role = Column(Enum(UserRole), default=UserRole.USER)
     department = Column(String, nullable=True)
+    base_plant = Column(String, default="Apapa")
