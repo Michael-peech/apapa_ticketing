@@ -90,7 +90,10 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
         /* Form Elements */
-        select, textarea, input[type="text"] { width: 100%; padding: 12px; margin-bottom: 20px; box-sizing: border-box; border: 1px solid var(--border-color); border-radius: 6px; font-family: inherit; }
+        select, textarea, input[type="text"], input[type="email"], input[type="password"] { 
+            width: 100%; padding: 12px; margin-bottom: 20px; box-sizing: border-box; 
+            border: 1px solid var(--border-color); border-radius: 6px; font-family: inherit; 
+        }
         
         /* Modern Toasts */
         #toast-container { position: fixed; top: 25px; right: 25px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
@@ -185,6 +188,7 @@
                     <h3 style="border-bottom: 1px solid #eee; padding-bottom: 10px;">Account Information</h3>
                     <p><strong>Corporate Email:</strong> <span id="prof-email"></span></p>
                     <p><strong>System Clearance:</strong> <span id="prof-role" style="text-transform: uppercase;"></span></p>
+                    <p><strong>Base Plant:</strong> <span id="prof-plant"></span></p>
                     <p><strong>Status:</strong> Active</p>
                 </div>
 
@@ -193,12 +197,24 @@
                     <form id="ticket-form" style="max-width: 600px;">
                         <label style="font-weight: 600; margin-bottom: 5px; display: block;">Full Name</label>
                         <input type="text" id="t-name" placeholder="John Doe" required>
+                        
+                        <label style="font-weight: 600; margin-bottom: 5px; display: block;">Current Plant Location</label>
+                        <select id="t-location">
+                            <option value="Apapa">Apapa</option>
+                            <option value="Tincan">Tincan</option>
+                            <option value="Ikorodu">Ikorodu</option>
+                        </select>
+
                         <label style="font-weight: 600; margin-bottom: 5px; display: block;">Issue Category</label>
                         <select id="t-category">
-                            <option>Hardware</option><option>Network</option><option>Software</option>
+                            <option>Hardware</option>
+                            <option>Network</option>
+                            <option>Software</option>
                         </select>
+
                         <label style="font-weight: 600; margin-bottom: 5px; display: block;">Symptoms / Description</label>
                         <textarea id="t-desc" rows="5" placeholder="Describe the issue..." required></textarea>
+                        
                         <button type="button" class="btn-primary" onclick="submitTicket()" style="max-width: 200px;">Submit Ticket</button>
                     </form>
                 </div>
@@ -219,13 +235,21 @@
                 <div class="panel" id="panel-users">
                     <h3 style="border-bottom: 1px solid #eee; padding-bottom: 10px;">Grant System Access</h3>
                     <form id="user-form" style="max-width: 500px;">
-                        <input type="email" id="u-email" placeholder="Employee Email" style="width: 100%; padding: 10px; margin-bottom: 15px;" required>
-                        <input type="password" id="u-pass" placeholder="Temporary Password" style="width: 100%; padding: 10px; margin-bottom: 15px;" required>
-                        <select id="u-role" style="width: 100%; padding: 10px; margin-bottom: 15px;">
+                        <input type="email" id="u-email" placeholder="Employee Email" required>
+                        <input type="password" id="u-pass" placeholder="Temporary Password" required>
+                        
+                        <select id="u-role">
                             <option value="user">Standard User</option>
                             <option value="tech">Technician</option>
                             <option value="admin">Administrator</option>
                         </select>
+                        
+                        <select id="u-plant">
+                            <option value="Apapa">Base: Apapa</option>
+                            <option value="Tincan">Base: Tincan</option>
+                            <option value="Ikorodu">Base: Ikorodu</option>
+                        </select>
+
                         <button type="button" class="btn-primary" onclick="grantAccess()">Create Account</button>
                     </form>
                 </div>
@@ -319,12 +343,16 @@
             if (!payload) return;
 
             currentUserEmail = payload.sub;
+            const basePlant = payload.base_plant || "Apapa";
+
             document.getElementById('auth-wrapper').style.display = 'none';
             document.getElementById('app-container').style.display = 'flex';
             document.getElementById('user-badge').innerHTML = `${payload.sub}<br><span style="color:var(--olam-orange);font-weight:bold;">[${payload.role.toUpperCase()}]</span>`;
             
             document.getElementById('prof-email').innerText = payload.sub;
             document.getElementById('prof-role').innerText = payload.role;
+            document.getElementById('prof-plant').innerText = basePlant;
+            document.getElementById('t-location').value = basePlant; // Auto-select base plant in form
 
             if (payload.role === 'tech' || payload.role === 'admin') document.getElementById('nav-tech').style.display = 'block';
             if (payload.role === 'admin') {
@@ -343,8 +371,11 @@
         // TICKETS
         async function submitTicket() {
             const payload = {
-                plaintiff_name: document.getElementById('t-name').value, plaintiff_email: currentUserEmail,
-                issue_category: document.getElementById('t-category').value, symptoms_description: document.getElementById('t-desc').value
+                plaintiff_name: document.getElementById('t-name').value, 
+                plaintiff_email: currentUserEmail,
+                plant_location: document.getElementById('t-location').value,
+                issue_category: document.getElementById('t-category').value, 
+                symptoms_description: document.getElementById('t-desc').value
             };
             const res = await fetchWithAuth(`${API_URL}/tickets/`, { method: 'POST', body: JSON.stringify(payload) });
             if (res.ok) { showToast("Ticket Created!"); document.getElementById('ticket-form').reset(); switchTab('mytickets'); } 
@@ -362,7 +393,7 @@
                     list.innerHTML += `
                         <div style="border: 1px solid #e2e8f0; padding: 20px; border-radius: 8px; background: white; display: flex; justify-content: space-between; align-items: center;">
                             <div>
-                                <strong style="color: var(--cfm-blue);">ID: ${t.id} - ${t.issue_category}</strong>
+                                <strong style="color: var(--cfm-blue);">ID: ${t.id} - ${t.issue_category} (${t.plant_location || 'Apapa'})</strong>
                                 <p style="margin: 5px 0 0 0; font-size: 0.9em; color: #64748b;">${t.symptoms_description.substring(0,60)}...</p>
                             </div>
                             <div style="text-align: right;">
@@ -385,7 +416,10 @@
                     queue.innerHTML += `
                         <div class="ticket-card">
                             <strong style="color: var(--cfm-blue);">ID: ${t.id} - ${t.issue_category}</strong>
-                            <div style="margin: 10px 0; font-size: 0.9em; color: #555;"><strong>User:</strong> ${t.plaintiff_name}</div>
+                            <div style="margin: 10px 0; font-size: 0.9em; color: #555;">
+                                <strong>User:</strong> ${t.plaintiff_name}<br>
+                                <strong>Location:</strong> ${t.plant_location || 'Apapa'}
+                            </div>
                             <button class="btn-primary" style="width: 100%; padding: 8px;" onclick="openResolveModal(${t.id})">Resolve</button>
                         </div>
                     `;
@@ -406,7 +440,8 @@
                 const payload = { 
                     email: document.getElementById('u-email').value, 
                     password: document.getElementById('u-pass').value, 
-                    role: document.getElementById('u-role').value 
+                    role: document.getElementById('u-role').value,
+                    base_plant: document.getElementById('u-plant').value
                 };
                 
                 const res = await fetchWithAuth(`${API_URL}/admin/users`, { 
