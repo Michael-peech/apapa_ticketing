@@ -1,119 +1,55 @@
 import smtplib
-import os
-import time
-from email.message import EmailMessage
-from typing import Optional
-from datetime import datetime
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+import models
 
-SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp.gmail.com")
-SMTP_PORT = int(os.getenv("SMTP_PORT", 587))
-SMTP_USER = os.getenv("SMTP_USER", "whitehatplayer2.0@gmail.com")
-SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "kmax rvle fdwy ybeh")
-AFRICA_IT_SUPPORT = "oluwatobiloba69@gmail.com"
+# --- SMTP CONFIGURATION ---
+SMTP_SERVER = "smtp.gmail.com" 
+SMTP_PORT = 587
+SENDER_EMAIL = "whitehatplayer2.0@gmail.com"
+SENDER_PASSWORD = "kmax rvle fdwy ybeh"
 
-def _send_email(subject: str, html_body: str, to_addrs: list, cc_addrs: Optional[list] = None, max_retries: int = 3):
-    msg = EmailMessage()
-    msg['Subject'] = subject
-    msg['From'] = SMTP_USER
-    msg['To'] = ", ".join(to_addrs)
+def _send_email(to_email: str, subject: str, body: str):
+    """Internal helper function to execute the SMTP sending."""
+    try:
+        msg = MIMEMultipart()
+        msg['From'] = SENDER_EMAIL
+        msg['To'] = to_email
+        msg['Subject'] = subject
+        msg.attach(MIMEText(body, 'plain'))
+
+        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+        server.starttls()
+        server.login(SENDER_EMAIL, SENDER_PASSWORD)
+        server.send_message(msg)
+        server.quit()
+    except Exception as e:
+        print(f"Failed to send email to {to_email}: {e}")
+
+def send_initial_email(ticket: models.Ticket, tech_emails: list):
+    """Loops through the list of technicians in the pool and sends the alert to each."""
+    subject = f"New IT Ticket: {ticket.issue_category} at {ticket.plant_location}"
+    body = f"""
+    A new ticket has been raised and is waiting in the {ticket.plant_location} Team Pool.
+
+    ID: {ticket.id}
+    User: {ticket.plaintiff_name} ({ticket.plaintiff_department})
+    Issue: {ticket.issue_category}
+    Description: {ticket.symptoms_description}
     
-    if cc_addrs:
-        msg['Cc'] = ", ".join(cc_addrs)
-
-    # Set the email content to render as HTML
-    msg.set_content(html_body, subtype='html')
-
-    for attempt in range(max_retries):
-        try:
-            with smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=10) as server:
-                server.starttls()
-                server.login(SMTP_USER, SMTP_PASSWORD)
-                server.send_message(msg)
-                print(f"Successfully sent email: {subject}")
-                return  # Exit function immediately on success
-        except smtplib.SMTPServerDisconnected:
-            print(f"Attempt {attempt + 1}: SMTP server disconnected. Retrying in 2 seconds...")
-            time.sleep(2)
-        except Exception as e:
-            print(f"Attempt {attempt + 1}: Failed to send email - {e}")
-            time.sleep(2)
-            
-    print(f"CRITICAL ERROR: Failed to send email '{subject}' after {max_retries} attempts.")
-
-def send_initial_email(ticket):
-    ticket_ref = ticket.olam_ticket_id if ticket.olam_ticket_id else f"Local ID {ticket.id}"
-    subject = f"Incident: {ticket_ref} - {ticket.issue_category}"
-    
-    html_body = f"""
-    <div style="font-family: Arial, sans-serif; background-color: #333333; padding: 20px; border-radius: 8px; max-width: 600px; color: #ffffff;">
-        <h2 style="color: #f26522; border-bottom: 1px solid #555; padding-bottom: 10px;">Olam Agri</h2>
-        <div style="background-color: #1e1e1e; padding: 20px; border-radius: 8px;">
-            <h3 style="text-align: center; border-bottom: 1px solid #555; padding-bottom: 10px; margin-top: 0;">We received your incident</h3>
-            <p>Hi <strong>{ticket.plaintiff_name}</strong>,</p>
-            <p>We would like to inform you that a new incident has been created on your behalf.</p>
-            <p><strong>Incident:</strong> {ticket_ref}</p>
-            <p><strong>Short Description:</strong> {ticket.issue_category} - {ticket.symptoms_description[:50]}...</p>
-            <p>Our support team is currently reviewing your request and will work towards a timely resolution. You can track the progress of this incident via the Service Portal.</p>
-            <p>If you believe any details need correction or if you have further input, feel free to reply to this email.</p>
-            <p>Thank you for bringing this to our attention.</p>
-            <div style="text-align: center; margin: 20px 0;">
-                <a href="#" style="background-color: #a81c00; color: #ffffff; padding: 10px 20px; text-decoration: none; border-radius: 4px; display: inline-block; font-weight: bold; width: 80%;">{ticket_ref}</a>
-            </div>
-            <p><strong>Thank You,<br>Olam Agri IT Service Desk</strong></p>
-        </div>
-    </div>
+    Please log into the Service Desk to claim this ticket.
     """
     
-    _send_email(
-        subject=subject,
-        html_body=html_body,
-        to_addrs=[AFRICA_IT_SUPPORT],
-        cc_addrs=[ticket.assigned_tech_email]
-    )
+    for email in tech_emails:
+        _send_email(email, subject, body)
 
-def send_resolution_email(ticket):
-    ticket_ref = ticket.olam_ticket_id if ticket.olam_ticket_id else f"Local ID {ticket.id}"
-    subject = f"Resolved: {ticket_ref} - {ticket.issue_category}"
-    current_time = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
-    
-    html_body = f"""
-    <div style="font-family: Arial, sans-serif; background-color: #333333; padding: 20px; border-radius: 8px; max-width: 600px; color: #ffffff;">
-        <h2 style="color: #f26522; border-bottom: 1px solid #555; padding-bottom: 10px;">Olam Agri</h2>
-        <div style="background-color: #1e1e1e; padding: 20px; border-radius: 8px;">
-            <p><strong>Hi Team,</strong></p>
-            <p>The Incident ({ticket_ref} - {ticket.issue_category}) has been resolved and is now <strong>Closed</strong>.</p>
-            
-            <h4 style="border-bottom: 1px solid #555; padding-bottom: 5px;">Recent Comments</h4>
-            <div style="font-size: 0.9em; margin-bottom: 20px;">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                    <strong>{current_time} - System</strong>
-                    <span style="color: #aaaaaa; font-size: 0.8em;">Additional comments</span>
-                </div>
-                <p style="margin: 0;">Resolution Notes:</p>
-                <p style="margin: 5px 0 0 0;">Resolved</p>
-            </div>
-            
-            <p>If the issue reoccurs or you feel it has not been fully resolved, you may reply to this email or contact the support team for further assistance.</p>
-            <p>We appreciate your collaboration throughout the process.</p>
-            
-            <p style="margin-bottom: 5px;">Click here to view incident.</p>
-            <div style="text-align: center; margin-bottom: 20px;">
-                <a href="#" style="background-color: #a81c00; color: #ffffff; padding: 10px 20px; text-decoration: none; border-radius: 4px; display: inline-block; font-weight: bold; width: 80%;">{ticket_ref}</a>
-            </div>
-            
-            <p style="margin-bottom: 5px;">Help us to serve you better by providing your feedback by click this button.</p>
-            <div style="text-align: center; margin-bottom: 20px;">
-                <a href="#" style="background-color: #555555; color: #ffffff; padding: 10px 20px; text-decoration: none; border-radius: 4px; display: inline-block; font-weight: bold; width: 80%;">Give Feedback</a>
-            </div>
-            
-            <p><strong>Thank You,<br>Olam Agri IT Service Desk</strong></p>
-        </div>
-    </div>
+def send_resolution_email(ticket: models.Ticket):
+    """Sends the RCA and fix directly to the user who raised the ticket."""
+    subject = f"Resolved IT Ticket #{ticket.id}"
+    body = f"""
+    Your IT ticket has been resolved by {ticket.assigned_tech_email}.
+
+    Root Cause: {ticket.root_cause}
+    Resolution Steps: {ticket.resolution_steps}
     """
-    
-    _send_email(
-        subject=subject,
-        html_body=html_body,
-        to_addrs=[AFRICA_IT_SUPPORT],
-        cc_addrs=[ticket.assigned_tech_email, ticket.plaintiff_email]
-    )
+    _send_email(ticket.plaintiff_email, subject, body)
