@@ -33,7 +33,7 @@ class TicketResolve(BaseModel):
 class TicketOut(TicketBase):
     id: int
     olam_ticket_id: Optional[str] = None
-    assigned_tech_email: EmailStr
+    assigned_tech_email: Str
     status: TicketStatus
     root_cause: Optional[str] = None
     resolution_steps: Optional[str] = None
