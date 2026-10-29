@@ -89,6 +89,12 @@
         .panel.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
+        /* Queue Toggle CSS */
+        .queue-toggle-container { display: flex; justify-content: flex-start; margin-bottom: 25px; }
+        .queue-toggle { display: flex; background: #e2e8f0; border-radius: 30px; padding: 4px; position: relative; }
+        .toggle-btn { background: transparent; border: none; padding: 10px 25px; border-radius: 26px; font-weight: 600; color: #64748b; cursor: pointer; transition: all 0.3s ease; }
+        .toggle-btn.active { background: white; color: var(--olam-orange); box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+
         /* Form Elements */
         select, textarea, input[type="text"], input[type="email"], input[type="password"] { 
             width: 100%; padding: 12px; margin-bottom: 20px; box-sizing: border-box; 
@@ -232,16 +238,29 @@
                     </form>
                 </div>
 
-                <!-- MY TICKETS TAB (History & Tracking) -->
+                <!-- MY TICKETS TAB -->
                 <div class="panel" id="panel-mytickets">
                     <button class="logout-btn" onclick="loadMyTickets()" style="margin-bottom: 20px;">Refresh History</button>
                     <div id="my-tickets-list" style="display: flex; flex-direction: column; gap: 15px;"></div>
                 </div>
 
-                <!-- TECH QUEUE TAB -->
+                <!-- TECH QUEUE TAB (With Toggles) -->
                 <div class="panel" id="panel-tech">
-                    <button class="logout-btn" onclick="loadActiveTickets()" style="margin-bottom: 20px;">Refresh Queue</button>
-                    <div id="ticket-queue" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px;"></div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <div class="queue-toggle-container" style="margin-bottom: 0;">
+                            <div class="queue-toggle">
+                                <button class="toggle-btn active" id="btn-pool" onclick="switchQueue('pool')">Team Pool</button>
+                                <button class="toggle-btn" id="btn-workspace" onclick="switchQueue('workspace')">My Workspace</button>
+                            </div>
+                        </div>
+                        <button class="logout-btn" onclick="loadTechDashboards()">Refresh Data</button>
+                    </div>
+                    
+                    <!-- Team Pool Display -->
+                    <div id="view-pool" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px;"></div>
+                    
+                    <!-- My Workspace Display -->
+                    <div id="view-workspace" style="display: none; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px;"></div>
                 </div>
 
                 <!-- USER MANAGEMENT TAB (Admin) -->
@@ -322,7 +341,8 @@
         let activeTicketId = null;
         let currentUserEmail = "";
         let currentUserDepartment = "General";
-        let techQueueData = []; // Store active tickets for description viewing
+        let currentUserPlant = "Apapa";
+        let allTicketsData = []; // Centralized data store
 
         // UI HELPERS
         function switchTab(tab) {
@@ -336,7 +356,14 @@
             document.getElementById(`panel-${tab}`).classList.add('active');
 
             if (tab === 'mytickets') loadMyTickets();
-            if (tab === 'tech') loadActiveTickets();
+            if (tab === 'tech') loadTechDashboards();
+        }
+
+        function switchQueue(view) {
+            document.getElementById('btn-pool').classList.toggle('active', view === 'pool');
+            document.getElementById('btn-workspace').classList.toggle('active', view === 'workspace');
+            document.getElementById('view-pool').style.display = view === 'pool' ? 'grid' : 'none';
+            document.getElementById('view-workspace').style.display = view === 'workspace' ? 'grid' : 'none';
         }
 
         function showToast(message, type = 'success') {
@@ -350,7 +377,7 @@
         }
 
         function openDescModal(ticketId) {
-            const ticket = techQueueData.find(t => t.id === ticketId);
+            const ticket = allTicketsData.find(t => t.id === ticketId);
             if(ticket) {
                 document.getElementById('modal-desc-text').innerText = ticket.symptoms_description;
                 document.getElementById('desc-modal').style.display = 'flex';
@@ -386,7 +413,7 @@
 
             currentUserEmail = payload.sub;
             currentUserDepartment = payload.department || "General";
-            const basePlant = payload.base_plant || "Apapa";
+            currentUserPlant = payload.base_plant || "Apapa";
 
             document.getElementById('auth-wrapper').style.display = 'none';
             document.getElementById('app-container').style.display = 'flex';
@@ -395,8 +422,8 @@
             document.getElementById('prof-email').innerText = payload.sub;
             document.getElementById('prof-role').innerText = payload.role;
             document.getElementById('prof-dept').innerText = currentUserDepartment;
-            document.getElementById('prof-plant').innerText = basePlant;
-            document.getElementById('t-location').value = basePlant; 
+            document.getElementById('prof-plant').innerText = currentUserPlant;
+            document.getElementById('t-location').value = currentUserPlant; 
 
             if (payload.role === 'tech' || payload.role === 'admin') document.getElementById('nav-tech').style.display = 'block';
             if (payload.role === 'admin') {
@@ -412,7 +439,7 @@
             return fetch(url, { ...options, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionStorage.getItem('access_token')}` }});
         }
 
-        // TICKETS
+        // TICKETS (INGESTION & HISTORY)
         async function submitTicket() {
             const payload = {
                 plaintiff_name: document.getElementById('t-name').value, 
@@ -451,29 +478,68 @@
             }
         }
 
-        async function loadActiveTickets() {
-            const res = await fetchWithAuth(`${API_URL}/tickets/active?tech_email=${currentUserEmail}`);
-            if (res.ok) {
-                techQueueData = await res.json();
-                const queue = document.getElementById('ticket-queue');
-                queue.innerHTML = '';
-                techQueueData.forEach(t => {
-                    queue.innerHTML += `
-                        <div class="ticket-card" style="display: flex; flex-direction: column; justify-content: space-between;">
-                            <div>
-                                <strong style="color: var(--cfm-blue); font-size: 1.1em;">ID: ${t.id} - ${t.issue_category}</strong>
-                                <div style="margin: 15px 0; font-size: 0.9em; color: #475569; line-height: 1.5;">
-                                    <strong>User:</strong> ${t.plaintiff_name} <span style="color: #94a3b8;">(${t.plaintiff_department})</span><br>
-                                    <strong>Location:</strong> ${t.plant_location || 'Apapa'}
-                                </div>
-                            </div>
-                            <div style="display: flex; gap: 10px; margin-top: 5px;">
-                                <button class="btn-primary" style="margin: 0; background-color: #64748b;" onclick="openDescModal(${t.id})">View Description</button>
-                                <button class="btn-primary" style="margin: 0;" onclick="openResolveModal(${t.id})">Resolve</button>
-                            </div>
+        // TECH DASHBOARD (POOL & WORKSPACE)
+        function generateCardHTML(t, isPool) {
+            let actionButtons = '';
+            if (isPool) {
+                actionButtons = `<button class="btn-primary" style="width: 100%;" onclick="claimTicket(${t.id})">Claim Ticket</button>`;
+            } else {
+                actionButtons = `
+                    <button class="btn-primary" style="margin: 0; background-color: #64748b;" onclick="openDescModal(${t.id})">View Description</button>
+                    <button class="btn-primary" style="margin: 0;" onclick="openResolveModal(${t.id})">Resolve</button>
+                `;
+            }
+
+            return `
+                <div class="ticket-card" style="display: flex; flex-direction: column; justify-content: space-between; border: 1px solid #e2e8f0; padding: 20px; border-radius: 8px; background: white;">
+                    <div>
+                        <strong style="color: var(--cfm-blue); font-size: 1.1em;">ID: ${t.id} - ${t.issue_category}</strong>
+                        <div style="margin: 15px 0; font-size: 0.9em; color: #475569; line-height: 1.5;">
+                            <strong>User:</strong> ${t.plaintiff_name} <span style="color: #94a3b8;">(${t.plaintiff_department})</span><br>
+                            <strong>Location:</strong> ${t.plant_location || 'Apapa'}<br>
+                            <strong>Status:</strong> <span style="font-weight:600;">${t.status}</span>
                         </div>
-                    `;
-                });
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-top: 5px;">
+                        ${actionButtons}
+                    </div>
+                </div>
+            `;
+        }
+
+        async function loadTechDashboards() {
+            // Load Team Pool Data
+            const resPool = await fetchWithAuth(`${API_URL}/tickets/pool?plant_location=${currentUserPlant}`);
+            let poolData = [];
+            if (resPool.ok) poolData = await resPool.json();
+
+            // Load Workspace Data
+            const resWorkspace = await fetchWithAuth(`${API_URL}/tickets/active?tech_email=${currentUserEmail}`);
+            let workspaceData = [];
+            if (resWorkspace.ok) workspaceData = await resWorkspace.json();
+
+            // Store globally for Modals
+            allTicketsData = [...poolData, ...workspaceData];
+
+            // Render Pool
+            const viewPool = document.getElementById('view-pool');
+            viewPool.innerHTML = poolData.length === 0 ? "<p>No unassigned tickets in the Team Pool.</p>" : "";
+            poolData.forEach(t => { viewPool.innerHTML += generateCardHTML(t, true); });
+
+            // Render Workspace
+            const viewWorkspace = document.getElementById('view-workspace');
+            viewWorkspace.innerHTML = workspaceData.length === 0 ? "<p>Your workspace is empty.</p>" : "";
+            workspaceData.forEach(t => { viewWorkspace.innerHTML += generateCardHTML(t, false); });
+        }
+
+        async function claimTicket(ticketId) {
+            const res = await fetchWithAuth(`${API_URL}/tickets/${ticketId}/claim`, { method: 'PATCH' });
+            if (res.ok) { 
+                showToast("Ticket Claimed! Moved to My Workspace."); 
+                loadTechDashboards();
+                switchQueue('workspace'); // Auto-switch view
+            } else { 
+                showToast("Failed to claim ticket. Someone else may have taken it.", "error"); 
             }
         }
 
@@ -481,7 +547,7 @@
             const res = await fetchWithAuth(`${API_URL}/tickets/${activeTicketId}/resolve`, {
                 method: 'PATCH', body: JSON.stringify({ root_cause: document.getElementById('rca-input').value, resolution_steps: document.getElementById('res-input').value, status: 'Resolved' })
             });
-            if (res.ok) { showToast("Resolved."); document.getElementById('resolve-modal').style.display='none'; loadActiveTickets(); }
+            if (res.ok) { showToast("Resolved."); document.getElementById('resolve-modal').style.display='none'; loadTechDashboards(); }
         }
 
         // ADMIN FUNCTIONS
@@ -495,20 +561,13 @@
                     base_plant: document.getElementById('u-plant').value
                 };
                 
-                const res = await fetchWithAuth(`${API_URL}/admin/users`, { 
-                    method: 'POST', 
-                    body: JSON.stringify(payload) 
-                });
+                const res = await fetchWithAuth(`${API_URL}/admin/users`, { method: 'POST', body: JSON.stringify(payload) });
                 
                 if (res.ok) { 
                     showToast("Access granted successfully.", "success"); 
                     document.getElementById('user-form').reset(); 
-                } else { 
-                    showToast("Failed. Email may already exist.", "error"); 
-                }
-            } catch (error) {
-                showToast("Server unreachable. Check Uvicorn terminal.", "error");
-            }
+                } else { showToast("Failed. Email may already exist.", "error"); }
+            } catch (error) { showToast("Server unreachable. Check Uvicorn terminal.", "error"); }
         }
 
         async function loadAdminDashboard() {
