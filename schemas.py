@@ -12,6 +12,7 @@ class TicketStatus(str, Enum):
 class TicketBase(BaseModel):
     plaintiff_name: str = Field(..., min_length=2)
     plaintiff_email: EmailStr
+    plant_location: str = Field(default="Apapa") # Added here so it applies to both creation and output
     issue_category: str = Field(..., min_length=2)
     symptoms_description: str = Field(..., min_length=10)
 
@@ -45,6 +46,7 @@ class UserCreate(BaseModel):
     email: str
     password: str
     role: str = "user"
+    base_plant: str = "Apapa" # Added here to support the Admin User Creation panel
 
 class UserOut(BaseModel):
     id: int
