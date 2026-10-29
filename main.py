@@ -125,7 +125,7 @@ def get_plant_tech_emails(location: str) -> list:
         "Tincan": ["tincan.it@olamagri.com"],
         "Ikorodu": ["ikorodu.it@olamagri.com"]
     }
-    return routing_table.get(location, ["africaITsupport@olamagri.com"])
+    return routing_table.get(location, ["oluwatobiloba69@gmail.com"])
 
 
 # --- APPLICATION ROUTES ---
