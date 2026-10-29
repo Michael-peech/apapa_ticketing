@@ -27,13 +27,14 @@ def create_initial_admin():
     if not admin_exists:
         admin_user = models.User(
             email="admin@olamagri.com",
-            hashed_password=get_password_hash("admin123"),
+            hashed_password=get_password_hash("SecurePassword123!"),
             role=models.UserRole.ADMIN,
-            base_plant="Apapa"
+            base_plant="Apapa",
+            department="IT Leadership"
         )
         db.add(admin_user)
         db.commit()
-        print("Default admin account created: admin@olamagri.com / admin123")
+        print("Default admin account created: admin@olamagri.com / SecurePassword123!")
 
 app.add_middleware(
     CORSMiddleware,
@@ -100,17 +101,20 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
             headers={"WWW-Authenticate": "Bearer"},
         )
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    
+    # Inject both base_plant and department into the secure token
     access_token = create_access_token(
         data={
             "sub": user.email, 
             "role": user.role.value if hasattr(user.role, 'value') else user.role,
-            "base_plant": getattr(user, 'base_plant', 'Apapa')
+            "base_plant": getattr(user, 'base_plant', 'Apapa'),
+            "department": getattr(user, 'department', 'General')
         }, 
         expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
-# --- ROUTING LOGIC (Upgraded to Location-Based Triage) ---
+# --- ROUTING LOGIC ---
 def assign_technician(location: str) -> str:
     routing_table = {
         "Apapa": "makabogu55@gmail.com",
@@ -119,10 +123,7 @@ def assign_technician(location: str) -> str:
     }
     return routing_table.get(location, "africaITsupport@olamagri.com")
 
-
 # --- APPLICATION ROUTES ---
-
-# 1. User Portal: Ticket Ingestion
 @app.post("/tickets/", response_model=schemas.TicketOut, status_code=status.HTTP_201_CREATED)
 def create_ticket(
     ticket: schemas.TicketCreate, 
@@ -141,7 +142,6 @@ def create_ticket(
     background_tasks.add_task(email_service.send_initial_email, db_ticket)
     return db_ticket
 
-# 2. Technician View: Active Queue
 @app.get("/tickets/active", response_model=List[schemas.TicketOut])
 def get_active_tickets(
     tech_email: str, 
@@ -154,7 +154,6 @@ def get_active_tickets(
     ).all()
     return tickets
 
-# 3. Resolution Gate
 @app.patch("/tickets/{ticket_id}/resolve", response_model=schemas.TicketOut)
 def resolve_ticket(
     ticket_id: int, 
@@ -179,7 +178,6 @@ def resolve_ticket(
     background_tasks.add_task(email_service.send_resolution_email, db_ticket)
     return db_ticket
 
-# 4. Admin Portal: JSON Data for Live Dashboard
 @app.get("/reports/data", response_model=List[schemas.TicketOut])
 def get_admin_dashboard_data(
     db: Session = Depends(get_db),
@@ -187,7 +185,6 @@ def get_admin_dashboard_data(
 ):
     return db.query(models.Ticket).order_by(models.Ticket.id.desc()).all()
 
-# 5. Admin Portal: Executive PDF Report
 @app.get("/reports/pdf")
 def spool_pdf_report(
     db: Session = Depends(get_db),
@@ -248,7 +245,6 @@ def spool_pdf_report(
         print(f"CRITICAL PDF ERROR: {e}")
         raise HTTPException(status_code=500, detail="Failed to compile PDF report.")
 
-# 6. Admin Portal: Excel Data Dump
 @app.get("/reports/excel")
 def spool_excel_report(
     db: Session = Depends(get_db),
@@ -310,14 +306,13 @@ def spool_excel_report(
         print(f"CRITICAL EXCEL ERROR: {e}")
         raise HTTPException(status_code=500, detail="Failed to compile Excel report.")
 
-
 # --- NEW ENDPOINTS (My Tickets & User Creation) ---
-
 class UserCreate(BaseModel):
     email: str 
     password: str
     role: str
     base_plant: str
+    department: str # Added department for local schema
 
 @app.get("/tickets/me", response_model=List[schemas.TicketOut])
 def get_my_tickets(
@@ -325,7 +320,6 @@ def get_my_tickets(
     current_user: models.User = Depends(get_current_user)
 ):
     return db.query(models.Ticket).filter(models.Ticket.plaintiff_email == current_user.email).order_by(models.Ticket.id.desc()).all()
-
 
 @app.post("/admin/users", status_code=status.HTTP_201_CREATED)
 def create_privileged_user(
@@ -340,7 +334,8 @@ def create_privileged_user(
             email=user_data.email,
             hashed_password=get_password_hash(user_data.password),
             role=role_enum,
-            base_plant=user_data.base_plant
+            base_plant=user_data.base_plant,
+            department=user_data.department # Writes department to DB
         )
         db.add(new_user)
         db.commit()
