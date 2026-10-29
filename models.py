@@ -21,6 +21,7 @@ class Ticket(Base):
     # Ingestion (User Portal)
     plaintiff_name = Column(String, nullable=False)
     plaintiff_email = Column(String, nullable=False)
+    plaintiff_department = Column(String, default="General")
     plant_location = Column(String, default="Apapa")
     issue_category = Column(String, nullable=False)
     symptoms_description = Column(Text, nullable=False)
