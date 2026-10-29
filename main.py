@@ -30,7 +30,7 @@ def create_initial_admin():
             hashed_password=get_password_hash("admin123!"),
             role=models.UserRole.ADMIN,
             base_plant="Apapa",
-            department="IT Leadership"
+            department="IT"
         )
         db.add(admin_user)
         db.commit()
