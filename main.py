@@ -34,7 +34,7 @@ def create_initial_admin():
         )
         db.add(admin_user)
         db.commit()
-        print("Default admin account created: admin@olamagri.com / SecurePassword123!")
+        print("Default admin account created: admin@olamagri.com / admin123!")
 
 app.add_middleware(
     CORSMiddleware,
