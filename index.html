@@ -297,7 +297,7 @@
             setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); }, 3500);
         }
 
-        // AUTHENTICATION (Using sessionStorage for persistence fix)
+        // AUTHENTICATION
         document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const formData = new URLSearchParams();
@@ -323,7 +323,6 @@
             document.getElementById('app-container').style.display = 'flex';
             document.getElementById('user-badge').innerHTML = `${payload.sub}<br><span style="color:var(--olam-orange);font-weight:bold;">[${payload.role.toUpperCase()}]</span>`;
             
-            // Populate Profile Data
             document.getElementById('prof-email').innerText = payload.sub;
             document.getElementById('prof-role').innerText = payload.role;
 
@@ -403,10 +402,27 @@
 
         // ADMIN FUNCTIONS
         async function grantAccess() {
-            const payload = { email: document.getElementById('u-email').value, password: document.getElementById('u-pass').value, role: document.getElementById('u-role').value };
-            const res = await fetchWithAuth(`${API_URL}/admin/users`, { method: 'POST', body: JSON.stringify(payload) });
-            if (res.ok) { showToast("Access granted successfully."); document.getElementById('user-form').reset(); }
-            else { showToast("Failed. Email may already exist.", "error"); }
+            try {
+                const payload = { 
+                    email: document.getElementById('u-email').value, 
+                    password: document.getElementById('u-pass').value, 
+                    role: document.getElementById('u-role').value 
+                };
+                
+                const res = await fetchWithAuth(`${API_URL}/admin/users`, { 
+                    method: 'POST', 
+                    body: JSON.stringify(payload) 
+                });
+                
+                if (res.ok) { 
+                    showToast("Access granted successfully.", "success"); 
+                    document.getElementById('user-form').reset(); 
+                } else { 
+                    showToast("Failed. Email may already exist.", "error"); 
+                }
+            } catch (error) {
+                showToast("Server unreachable. Check Uvicorn terminal.", "error");
+            }
         }
 
         async function loadAdminDashboard() {
