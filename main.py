@@ -102,7 +102,6 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
         )
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     
-    # Inject both base_plant and department into the secure token
     access_token = create_access_token(
         data={
             "sub": user.email, 
@@ -114,14 +113,20 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
-# --- ROUTING LOGIC ---
-def assign_technician(location: str) -> str:
+# --- MVP POOL & NOTIFICATION ROUTING ---
+def get_pool_name(location: str) -> str:
+    # Generates a database string like "POOL-APAPA" to hold the unassigned ticket
+    return f"POOL-{location.upper()}"
+
+def get_plant_tech_emails(location: str) -> list:
+    # Returns the list of actual technician emails for the email_service to fan-out to
     routing_table = {
-        "Apapa": "makabogu55@gmail.com",
-        "Tincan": "tincan.it@olamagri.com",
-        "Ikorodu": "ikorodu.it@olamagri.com"
+        "Apapa": ["makabogu55@gmail.com", "admin@olamagri.com"],
+        "Tincan": ["tincan.it@olamagri.com"],
+        "Ikorodu": ["ikorodu.it@olamagri.com"]
     }
-    return routing_table.get(location, "africaITsupport@olamagri.com")
+    return routing_table.get(location, ["africaITsupport@olamagri.com"])
+
 
 # --- APPLICATION ROUTES ---
 @app.post("/tickets/", response_model=schemas.TicketOut, status_code=status.HTTP_201_CREATED)
@@ -131,17 +136,24 @@ def create_ticket(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-    assigned_tech = assign_technician(ticket.plant_location)
+    # 1. Assign to the string database pool (e.g., POOL-APAPA)
+    pool_assignment = get_pool_name(ticket.plant_location)
+    
     db_ticket = models.Ticket(
         **ticket.model_dump(),
-        assigned_tech_email=assigned_tech
+        assigned_tech_email=pool_assignment
     )
     db.add(db_ticket)
     db.commit()
     db.refresh(db_ticket)
-    background_tasks.add_task(email_service.send_initial_email, db_ticket)
+    
+    # 2. Fan-out to the actual emails of the technicians via background task
+    tech_emails = get_plant_tech_emails(ticket.plant_location)
+    background_tasks.add_task(email_service.send_initial_email, db_ticket, tech_emails)
+    
     return db_ticket
 
+# Gets tickets claimed by the logged-in technician (My Workspace)
 @app.get("/tickets/active", response_model=List[schemas.TicketOut])
 def get_active_tickets(
     tech_email: str, 
@@ -153,6 +165,42 @@ def get_active_tickets(
         models.Ticket.status != models.TicketStatus.RESOLVED
     ).all()
     return tickets
+
+# Gets unassigned tickets waiting in a specific plant's pool (Team Pool)
+@app.get("/tickets/pool", response_model=List[schemas.TicketOut])
+def get_pool_tickets(
+    plant_location: str, 
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role([models.UserRole.TECH, models.UserRole.ADMIN]))
+):
+    pool_assignment = get_pool_name(plant_location)
+    tickets = db.query(models.Ticket).filter(
+        models.Ticket.assigned_tech_email == pool_assignment,
+        models.Ticket.status != models.TicketStatus.RESOLVED
+    ).all()
+    return tickets
+
+# New endpoint to claim an unassigned ticket
+@app.patch("/tickets/{ticket_id}/claim", response_model=schemas.TicketOut)
+def claim_ticket(
+    ticket_id: int, 
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role([models.UserRole.TECH, models.UserRole.ADMIN]))
+):
+    db_ticket = db.query(models.Ticket).filter(models.Ticket.id == ticket_id).first()
+    if not db_ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+    
+    if not str(db_ticket.assigned_tech_email).startswith("POOL-"):
+        raise HTTPException(status_code=400, detail="Ticket has already been claimed by someone else.")
+
+    # Assign it to the technician who clicked claim and change status
+    db_ticket.assigned_tech_email = current_user.email
+    db_ticket.status = models.TicketStatus.IN_PROGRESS
+    
+    db.commit()
+    db.refresh(db_ticket)
+    return db_ticket
 
 @app.patch("/tickets/{ticket_id}/resolve", response_model=schemas.TicketOut)
 def resolve_ticket(
@@ -227,7 +275,9 @@ def spool_pdf_report(
                     hrs = (t.resolved_at - t.created_at).total_seconds() / 3600
                     sla = f"{hrs:.1f}h"
                 
-                tech = t.assigned_tech_email.split('@')[0] if t.assigned_tech_email else "Unassigned"
+                tech = str(t.assigned_tech_email).split('@')[0] if t.assigned_tech_email else "Unassigned"
+                if str(t.assigned_tech_email).startswith("POOL-"): tech = "Pool"
+
                 rca_text = f"Cause: {t.root_cause or 'N/A'}\nFix: {t.resolution_steps or 'N/A'}"
                 
                 row.cell(str(t.id))
@@ -306,13 +356,14 @@ def spool_excel_report(
         print(f"CRITICAL EXCEL ERROR: {e}")
         raise HTTPException(status_code=500, detail="Failed to compile Excel report.")
 
+
 # --- NEW ENDPOINTS (My Tickets & User Creation) ---
 class UserCreate(BaseModel):
     email: str 
     password: str
     role: str
     base_plant: str
-    department: str # Added department for local schema
+    department: str
 
 @app.get("/tickets/me", response_model=List[schemas.TicketOut])
 def get_my_tickets(
@@ -335,7 +386,7 @@ def create_privileged_user(
             hashed_password=get_password_hash(user_data.password),
             role=role_enum,
             base_plant=user_data.base_plant,
-            department=user_data.department # Writes department to DB
+            department=user_data.department
         )
         db.add(new_user)
         db.commit()
