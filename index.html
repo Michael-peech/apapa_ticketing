@@ -142,6 +142,8 @@
 
     <!-- UI COMPONENTS -->
     <div id="toast-container"></div>
+    
+    <!-- RESOLVE MODAL -->
     <div id="resolve-modal" class="modal-overlay" style="display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.5); z-index:1000; justify-content:center; align-items:center;">
         <div class="modal-content" style="background: white; padding: 30px; border-radius: 8px; width: 90%; max-width: 500px;">
             <h3 style="margin-top: 0;">Resolve Ticket #<span id="modal-ticket-id"></span></h3>
@@ -151,6 +153,15 @@
                 <button class="btn-primary" onclick="executeResolution()">Submit</button>
                 <button class="btn-primary" style="background: #888;" onclick="document.getElementById('resolve-modal').style.display='none'">Cancel</button>
             </div>
+        </div>
+    </div>
+
+    <!-- DESCRIPTION VIEW MODAL -->
+    <div id="desc-modal" class="modal-overlay" style="display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.5); z-index:1000; justify-content:center; align-items:center;">
+        <div class="modal-content" style="background: white; padding: 30px; border-radius: 8px; width: 90%; max-width: 500px;">
+            <h3 style="margin-top: 0; color: var(--cfm-blue);">Issue Description</h3>
+            <div id="modal-desc-text" style="line-height: 1.6; color: #475569; margin-bottom: 25px; white-space: pre-wrap;"></div>
+            <button class="btn-primary" style="background: #888; width: auto; padding: 8px 20px;" onclick="document.getElementById('desc-modal').style.display='none'">Close</button>
         </div>
     </div>
 
@@ -188,8 +199,9 @@
                     <h3 style="border-bottom: 1px solid #eee; padding-bottom: 10px;">Account Information</h3>
                     <p><strong>Corporate Email:</strong> <span id="prof-email"></span></p>
                     <p><strong>System Clearance:</strong> <span id="prof-role" style="text-transform: uppercase;"></span></p>
+                    <p><strong>Department:</strong> <span id="prof-dept"></span></p>
                     <p><strong>Base Plant:</strong> <span id="prof-plant"></span></p>
-                    <p><strong>Status:</strong> Active</p>
+                    <p><strong>Status:</strong> <span style="color: #10b981; font-weight: 600;">Active</span></p>
                 </div>
 
                 <!-- RAISE TICKET TAB -->
@@ -213,7 +225,7 @@
                         </select>
 
                         <label style="font-weight: 600; margin-bottom: 5px; display: block;">Symptoms / Description</label>
-                        <textarea id="t-desc" rows="5" placeholder="Describe the issue..." required></textarea>
+                        <textarea id="t-desc" rows="5" placeholder="Describe the issue in detail..." required></textarea>
                         
                         <button type="button" class="btn-primary" onclick="submitTicket()" style="max-width: 200px;">Submit Ticket</button>
                     </form>
@@ -238,12 +250,25 @@
                         <input type="email" id="u-email" placeholder="Employee Email" required>
                         <input type="password" id="u-pass" placeholder="Temporary Password" required>
                         
+                        <label style="font-weight: 600; margin-bottom: 5px; display: block;">Role Clearance</label>
                         <select id="u-role">
                             <option value="user">Standard User</option>
                             <option value="tech">Technician</option>
                             <option value="admin">Administrator</option>
                         </select>
                         
+                        <label style="font-weight: 600; margin-bottom: 5px; display: block;">Department</label>
+                        <select id="u-dept">
+                            <option value="General">General</option>
+                            <option value="HR">HR</option>
+                            <option value="Store">Store</option>
+                            <option value="Evacuation">Evacuation</option>
+                            <option value="Weighbridge">Weighbridge</option>
+                            <option value="QA">QA</option>
+                            <option value="IT">IT</option>
+                        </select>
+                        
+                        <label style="font-weight: 600; margin-bottom: 5px; display: block;">Base Plant Location</label>
                         <select id="u-plant">
                             <option value="Apapa">Base: Apapa</option>
                             <option value="Tincan">Base: Tincan</option>
@@ -295,6 +320,8 @@
         const API_URL = "http://127.0.0.1:8000";
         let activeTicketId = null;
         let currentUserEmail = "";
+        let currentUserDepartment = "General";
+        let techQueueData = []; // Store active tickets for description viewing
 
         // UI HELPERS
         function switchTab(tab) {
@@ -321,6 +348,20 @@
             setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); }, 3500);
         }
 
+        function openDescModal(ticketId) {
+            const ticket = techQueueData.find(t => t.id === ticketId);
+            if(ticket) {
+                document.getElementById('modal-desc-text').innerText = ticket.symptoms_description;
+                document.getElementById('desc-modal').style.display = 'flex';
+            }
+        }
+
+        function openResolveModal(ticketId) {
+            activeTicketId = ticketId;
+            document.getElementById('modal-ticket-id').innerText = ticketId;
+            document.getElementById('resolve-modal').style.display = 'flex';
+        }
+
         // AUTHENTICATION
         document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -343,6 +384,7 @@
             if (!payload) return;
 
             currentUserEmail = payload.sub;
+            currentUserDepartment = payload.department || "General";
             const basePlant = payload.base_plant || "Apapa";
 
             document.getElementById('auth-wrapper').style.display = 'none';
@@ -351,8 +393,9 @@
             
             document.getElementById('prof-email').innerText = payload.sub;
             document.getElementById('prof-role').innerText = payload.role;
+            document.getElementById('prof-dept').innerText = currentUserDepartment;
             document.getElementById('prof-plant').innerText = basePlant;
-            document.getElementById('t-location').value = basePlant; // Auto-select base plant in form
+            document.getElementById('t-location').value = basePlant; 
 
             if (payload.role === 'tech' || payload.role === 'admin') document.getElementById('nav-tech').style.display = 'block';
             if (payload.role === 'admin') {
@@ -373,6 +416,7 @@
             const payload = {
                 plaintiff_name: document.getElementById('t-name').value, 
                 plaintiff_email: currentUserEmail,
+                plaintiff_department: currentUserDepartment,
                 plant_location: document.getElementById('t-location').value,
                 issue_category: document.getElementById('t-category').value, 
                 symptoms_description: document.getElementById('t-desc').value
@@ -409,18 +453,23 @@
         async function loadActiveTickets() {
             const res = await fetchWithAuth(`${API_URL}/tickets/active?tech_email=${currentUserEmail}`);
             if (res.ok) {
-                const tickets = await res.json();
+                techQueueData = await res.json();
                 const queue = document.getElementById('ticket-queue');
                 queue.innerHTML = '';
-                tickets.forEach(t => {
+                techQueueData.forEach(t => {
                     queue.innerHTML += `
-                        <div class="ticket-card">
-                            <strong style="color: var(--cfm-blue);">ID: ${t.id} - ${t.issue_category}</strong>
-                            <div style="margin: 10px 0; font-size: 0.9em; color: #555;">
-                                <strong>User:</strong> ${t.plaintiff_name}<br>
-                                <strong>Location:</strong> ${t.plant_location || 'Apapa'}
+                        <div class="ticket-card" style="display: flex; flex-direction: column; justify-content: space-between;">
+                            <div>
+                                <strong style="color: var(--cfm-blue); font-size: 1.1em;">ID: ${t.id} - ${t.issue_category}</strong>
+                                <div style="margin: 15px 0; font-size: 0.9em; color: #475569; line-height: 1.5;">
+                                    <strong>User:</strong> ${t.plaintiff_name} <span style="color: #94a3b8;">(${t.plaintiff_department})</span><br>
+                                    <strong>Location:</strong> ${t.plant_location || 'Apapa'}
+                                </div>
                             </div>
-                            <button class="btn-primary" style="width: 100%; padding: 8px;" onclick="openResolveModal(${t.id})">Resolve</button>
+                            <div style="display: flex; gap: 10px; margin-top: 5px;">
+                                <button class="btn-primary" style="margin: 0; background-color: #64748b;" onclick="openDescModal(${t.id})">View Description</button>
+                                <button class="btn-primary" style="margin: 0;" onclick="openResolveModal(${t.id})">Resolve</button>
+                            </div>
                         </div>
                     `;
                 });
@@ -441,6 +490,7 @@
                     email: document.getElementById('u-email').value, 
                     password: document.getElementById('u-pass').value, 
                     role: document.getElementById('u-role').value,
+                    department: document.getElementById('u-dept').value,
                     base_plant: document.getElementById('u-plant').value
                 };
                 
