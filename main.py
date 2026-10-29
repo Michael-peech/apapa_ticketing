@@ -1,7 +1,6 @@
 import csv
 import io
-from fastapi import Response
-from fastapi import FastAPI, Depends, HTTPException, status, BackgroundTasks
+from fastapi import Response, FastAPI, Depends, HTTPException, status, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
@@ -12,8 +11,7 @@ from typing import List
 from fpdf import FPDF
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
-from pydantic import BaseModel, EmailStr
-
+from pydantic import BaseModel
 
 import models, schemas, email_service
 from database import engine, get_db
@@ -24,9 +22,9 @@ app = FastAPI(title="Apapa IT Ticket MVP")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins for MVP testing
+    allow_origins=["*"],  
     allow_credentials=True,
-    allow_methods=["*"],  # Allows POST, GET, PATCH, etc.
+    allow_methods=["*"],  
     allow_headers=["*"],
 )
 
@@ -69,7 +67,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         raise credentials_exception
     return user
 
-def require_role(allowed_roles: list[str]):
+def require_role(allowed_roles: list):
     def role_checker(current_user: models.User = Depends(get_current_user)):
         if current_user.role not in allowed_roles:
             raise HTTPException(status_code=403, detail="Operation not permitted. Insufficient clearance.")
@@ -88,13 +86,24 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
         )
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.email, "role": user.role}, expires_delta=access_token_expires
+        data={"sub": user.email, "role": user.role.value if hasattr(user.role, 'value') else user.role}, 
+        expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
+# --- ROUTING LOGIC ---
+def assign_technician(category: str) -> str:
+    routing_table = {
+        "Hardware": "makabogu55@gmail.com",
+        "Network": "network.apapa@olamagri.com",
+        "Software": "appsupport.apapa@olamagri.com"
+    }
+    return routing_table.get(category, "africaITsupport@olamagri.com")
+
+
 # --- APPLICATION ROUTES ---
 
-# 1. User Portal: Ticket Ingestion (Requires Base Login)
+# 1. User Portal: Ticket Ingestion
 @app.post("/tickets/", response_model=schemas.TicketOut, status_code=status.HTTP_201_CREATED)
 def create_ticket(
     ticket: schemas.TicketCreate, 
@@ -102,8 +111,7 @@ def create_ticket(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-    assigned_tech = "makabogu55@gmail.com" 
-    
+    assigned_tech = assign_technician(ticket.issue_category)
     db_ticket = models.Ticket(
         **ticket.model_dump(),
         assigned_tech_email=assigned_tech
@@ -111,12 +119,10 @@ def create_ticket(
     db.add(db_ticket)
     db.commit()
     db.refresh(db_ticket)
-    
     background_tasks.add_task(email_service.send_initial_email, db_ticket)
-    
     return db_ticket
 
-# 2. Technician View: Active Queue (Locked to Techs & Admins)
+# 2. Technician View: Active Queue
 @app.get("/tickets/active", response_model=List[schemas.TicketOut])
 def get_active_tickets(
     tech_email: str, 
@@ -129,7 +135,7 @@ def get_active_tickets(
     ).all()
     return tickets
 
-# 3. Resolution Gate: Enforced Logging (Locked to Techs & Admins)
+# 3. Resolution Gate
 @app.patch("/tickets/{ticket_id}/resolve", response_model=schemas.TicketOut)
 def resolve_ticket(
     ticket_id: int, 
@@ -139,7 +145,6 @@ def resolve_ticket(
     current_user: models.User = Depends(require_role([models.UserRole.TECH, models.UserRole.ADMIN]))
 ):
     db_ticket = db.query(models.Ticket).filter(models.Ticket.id == ticket_id).first()
-    
     if not db_ticket:
         raise HTTPException(status_code=404, detail="Ticket not found")
     if db_ticket.status == models.TicketStatus.RESOLVED:
@@ -152,9 +157,7 @@ def resolve_ticket(
 
     db.commit()
     db.refresh(db_ticket)
-    
     background_tasks.add_task(email_service.send_resolution_email, db_ticket)
-
     return db_ticket
 
 # 4. Admin Portal: JSON Data for Live Dashboard
@@ -165,7 +168,7 @@ def get_admin_dashboard_data(
 ):
     return db.query(models.Ticket).order_by(models.Ticket.id.desc()).all()
 
-# 5. Admin Portal: Executive PDF Report (With Summary & Text Wrapping)
+# 5. Admin Portal: Executive PDF Report
 @app.get("/reports/pdf")
 def spool_pdf_report(
     db: Session = Depends(get_db),
@@ -173,8 +176,6 @@ def spool_pdf_report(
 ):
     try:
         tickets = db.query(models.Ticket).order_by(models.Ticket.id.desc()).all()
-        
-        # Calculate Summary Metrics
         total_tickets = len(tickets)
         resolved_tickets = [t for t in tickets if (t.status.value if hasattr(t.status, "value") else str(t.status)) == "Resolved"]
         resolution_rate = round((len(resolved_tickets) / total_tickets) * 100) if total_tickets > 0 else 0
@@ -192,24 +193,19 @@ def spool_pdf_report(
         pdf = PDFReport(orientation='L', unit='mm', format='A4')
         pdf.add_page()
         
-        # Executive Summary Block
         pdf.set_font('helvetica', 'B', 11)
         pdf.set_text_color(50, 50, 50)
         pdf.cell(0, 8, f"Operational Summary: {total_tickets} Total Incidents | {resolution_rate}% Resolution Rate", ln=1)
         pdf.ln(3)
 
-        # Dynamic Wrapping Table
         pdf.set_font('helvetica', '', 9)
         with pdf.table(text_align="LEFT", cell_fill_color=(244, 247, 246), cell_fill_mode="ROWS") as table:
-            # Header
             row = table.row()
             for header in ["ID", "Category", "Plaintiff", "Assigned Tech", "RCA & Resolution Summary", "SLA (Hrs)"]:
                 row.cell(header)
             
-            # Data Rows
             for t in tickets:
                 row = table.row()
-                # Calculate SLA
                 sla = "N/A"
                 if t.created_at and t.resolved_at:
                     hrs = (t.resolved_at - t.created_at).total_seconds() / 3600
@@ -229,12 +225,11 @@ def spool_pdf_report(
         response.headers["Content-Disposition"] = "attachment; filename=Olam_IT_Executive_Report.pdf"
         response.headers["Content-Type"] = "application/pdf"
         return response
-        
     except Exception as e:
         print(f"CRITICAL PDF ERROR: {e}")
         raise HTTPException(status_code=500, detail="Failed to compile PDF report.")
 
-# 6. Admin Portal: Excel Data Dump (Formatted)
+# 6. Admin Portal: Excel Data Dump
 @app.get("/reports/excel")
 def spool_excel_report(
     db: Session = Depends(get_db),
@@ -249,7 +244,6 @@ def spool_excel_report(
         headers = ["Ticket ID", "Category", "Plaintiff Name", "Assigned Tech", "Status", "Root Cause", "Resolution Steps", "Created At", "Resolved At", "SLA (Hours)"]
         ws.append(headers)
         
-        # Corporate Styling for Headers
         header_fill = PatternFill(start_color="F26522", end_color="F26522", fill_type="solid")
         header_font = Font(color="FFFFFF", bold=True)
         for cell in ws[1]:
@@ -271,7 +265,6 @@ def spool_excel_report(
                 sla
             ])
             
-        # Auto-adjust column widths and enable text wrapping
         for col in ws.columns:
             max_length = 0
             column = col[0].column_letter
@@ -280,7 +273,7 @@ def spool_excel_report(
                     if len(str(cell.value)) > max_length:
                         max_length = len(str(cell.value))
                 except: pass
-            ws.column_dimensions[column].width = min(max_length + 2, 60) # Cap at 60 wide
+            ws.column_dimensions[column].width = min(max_length + 2, 60) 
             for cell in col:
                 cell.alignment = Alignment(wrap_text=True, vertical="top")
                 
@@ -294,18 +287,19 @@ def spool_excel_report(
         response.headers["Content-Disposition"] = "attachment; filename=Olam_IT_Operations_Report.xlsx"
         response.headers["Content-Type"] = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         return response
-        
     except Exception as e:
         print(f"CRITICAL EXCEL ERROR: {e}")
         raise HTTPException(status_code=500, detail="Failed to compile Excel report.")
 
-# Quick Schema for Admin User Creation
-class UserCreate(BaseModel):
-    email: EmailStr
-    password: str
-    role: models.UserRole
 
-# 7. User Portal: Fetch Logged-in User's Tickets
+# --- NEW ENDPOINTS (My Tickets & User Creation) ---
+
+# Schema explicitly uses standard strings to prevent validation crashes
+class UserCreate(BaseModel):
+    email: str 
+    password: str
+    role: str
+
 @app.get("/tickets/me", response_model=List[schemas.TicketOut])
 def get_my_tickets(
     db: Session = Depends(get_db),
@@ -313,26 +307,26 @@ def get_my_tickets(
 ):
     return db.query(models.Ticket).filter(models.Ticket.plaintiff_email == current_user.email).order_by(models.Ticket.id.desc()).all()
 
-# 8. Admin Portal: Grant Privileges / Create Users
+
 @app.post("/admin/users", status_code=status.HTTP_201_CREATED)
 def create_privileged_user(
     user_data: UserCreate,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(require_role([models.UserRole.ADMIN]))
 ):
-    # Import your password hashing context here (assuming pwd_context from your auth setup)
-    from database import pwd_context # Adjust import based on where your passlib context lives
-    
-    hashed_pw = pwd_context.hash(user_data.password)
-    new_user = models.User(
-        email=user_data.email,
-        hashed_password=hashed_pw,
-        role=user_data.role
-    )
     try:
+        # Cast the string back to your SQLAlchemy Enum model
+        role_enum = models.UserRole(user_data.role)
+        
+        new_user = models.User(
+            email=user_data.email,
+            hashed_password=get_password_hash(user_data.password),
+            role=role_enum
+        )
         db.add(new_user)
         db.commit()
-        return {"message": f"User {user_data.email} granted {user_data.role.value} access."}
+        return {"message": f"User {user_data.email} granted access."}
     except Exception as e:
         db.rollback()
+        print(f"CRITICAL USER CREATION ERROR: {e}")
         raise HTTPException(status_code=400, detail="Email already exists or invalid data.")
