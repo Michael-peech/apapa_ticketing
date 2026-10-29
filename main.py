@@ -27,7 +27,7 @@ def create_initial_admin():
     if not admin_exists:
         admin_user = models.User(
             email="admin@olamagri.com",
-            hashed_password=get_password_hash("SecurePassword123!"),
+            hashed_password=get_password_hash("admin123!"),
             role=models.UserRole.ADMIN,
             base_plant="Apapa",
             department="IT Leadership"
