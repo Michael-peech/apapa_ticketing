@@ -119,14 +119,38 @@ def get_pool_name(location: str) -> str:
     return f"POOL-{location.upper()}"
 
 def get_plant_abbr(location: str) -> str:
-    # Maps the full location to the ticket abbreviation
+    # 1. Explicit Master Data (Always takes priority)
     abbr_map = {
         "Apapa": "AP",
         "Tincan": "TC",
         "Ikorodu": "IKR",
-        "Iganmu": "IG"
+        "Iganmu": "IG",
+        "Beachland": "BCL"
+        ""
     }
-    return abbr_map.get(location, "XX")
+    
+    if location in abbr_map:
+        return abbr_map[location]
+        
+    # 2. Smarter Auto-Generation (Airline Code Style)
+    # Remove spaces and get uppercase letters only
+    clean_name = "".join(c for c in location if c.isalpha()).upper()
+    
+    if not clean_name:
+        return "XX"
+        
+    # Keep the first letter, then extract only consonants from the rest
+    first_letter = clean_name[0]
+    consonants = "".join(c for c in clean_name[1:] if c not in "AEIOU")
+    
+    # Combine and cap at 3 characters
+    auto_abbr = (first_letter + consonants)[:3]
+    
+    # Safety fallback for very short names (e.g., "Aba" -> "AB")
+    if len(auto_abbr) < 2:
+        auto_abbr = clean_name[:3]
+        
+    return auto_abbr
 
 
 # --- APPLICATION ROUTES ---
