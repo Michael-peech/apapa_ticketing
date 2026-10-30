@@ -113,19 +113,10 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
-# --- MVP POOL & NOTIFICATION ROUTING ---
+# --- MVP POOL STRING IDENTIFIER ---
 def get_pool_name(location: str) -> str:
     # Generates a database string like "POOL-APAPA" to hold the unassigned ticket
     return f"POOL-{location.upper()}"
-
-def get_plant_tech_emails(location: str) -> list:
-    # Returns the list of actual technician emails for the email_service to fan-out to
-    routing_table = {
-        "Apapa": ["makabogu55@gmail.com", "admin@olamagri.com"],
-        "Tincan": ["tincan.it@olamagri.com"],
-        "Ikorodu": ["ikorodu.it@olamagri.com"]
-    }
-    return routing_table.get(location, ["oluwatobiloba69@gmail.com"])
 
 
 # --- APPLICATION ROUTES ---
@@ -147,8 +138,20 @@ def create_ticket(
     db.commit()
     db.refresh(db_ticket)
     
-    # 2. Fan-out to the actual emails of the technicians via background task
-    tech_emails = get_plant_tech_emails(ticket.plant_location)
+    # 2. Dynamically scan database for local technicians ONLY (excluding admins)
+    techs = db.query(models.User).filter(
+        models.User.base_plant == ticket.plant_location,
+        models.User.role == models.UserRole.TECH
+    ).all()
+    
+    # Extract just the email addresses into a list
+    tech_emails = [tech.email for tech in techs]
+    
+    # 3. Regional Fallback: If no local techs exist yet, route to central IT
+    if not tech_emails:
+        tech_emails = ["oluwatobiloba69@gmail.com"]
+        
+    # 4. Fan-out email alert via background task
     background_tasks.add_task(email_service.send_initial_email, db_ticket, tech_emails)
     
     return db_ticket
@@ -180,7 +183,7 @@ def get_pool_tickets(
     ).all()
     return tickets
 
-# New endpoint to claim an unassigned ticket
+# Endpoint to claim an unassigned ticket
 @app.patch("/tickets/{ticket_id}/claim", response_model=schemas.TicketOut)
 def claim_ticket(
     ticket_id: int, 
@@ -357,7 +360,7 @@ def spool_excel_report(
         raise HTTPException(status_code=500, detail="Failed to compile Excel report.")
 
 
-# --- NEW ENDPOINTS (My Tickets & User Creation) ---
+# --- ENDPOINTS (My Tickets & User Creation) ---
 class UserCreate(BaseModel):
     email: str 
     password: str
