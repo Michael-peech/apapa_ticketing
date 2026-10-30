@@ -120,6 +120,10 @@
         .dropdown-content a { color: black; padding: 12px 16px; text-decoration: none; display: block; cursor: pointer; font-size: 0.9em; }
         .dropdown-content a:hover { background-color: #f1f5f9; }
         .dropdown:hover .dropdown-content { display: block; }
+
+        input[list]::-webkit-calendar-picker-indicator {
+            display: none !important;
+        }
     </style>
 </head>
 <body>
@@ -217,7 +221,7 @@
                         <input type="text" id="t-name" placeholder="John Doe" required>
                         
                         <label style="font-weight: 600; margin-bottom: 5px; display: block;">Current Plant Location</label>
-                        <input list="plant-locations" id="t-location" placeholder="Type in plant location..." required autocomplete="off">
+                        <input list="plant-locations" id="t-location" placeholder="Type in plant location..." required autocomplete="off" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-family: inherit; font-size: 14px; margin-bottom: 15px;">
                         <datalist id="plant-locations">
                             <option value="Apapa">
                             <option value="Tincan">
