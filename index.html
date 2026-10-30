@@ -217,11 +217,20 @@
                         <input type="text" id="t-name" placeholder="John Doe" required>
                         
                         <label style="font-weight: 600; margin-bottom: 5px; display: block;">Current Plant Location</label>
-                        <select id="t-location">
-                            <option value="Apapa">Apapa</option>
-                            <option value="Tincan">Tincan</option>
-                            <option value="Ikorodu">Ikorodu</option>
-                        </select>
+                        <input list="plant-locations" id="t-location" placeholder="Type in plant location..." required autocomplete="off">
+                        <datalist id="plant-locations">
+                            <option value="Apapa">
+                            <option value="Tincan">
+                            <option value="Ikorodu">
+                            <option value="Iganmu">
+                            <option value="Kano">
+                            <option value="Port Harcourt">
+                            <option value="Kaduna">
+                            <option value="Ilorin">
+                            <option value="Calabar">
+                            <option value="Beachland">
+                                <!-- You can add 100 more here without breaking the UI -->
+                        </datalist>
 
                         <label style="font-weight: 600; margin-bottom: 5px; display: block;">Issue Category</label>
                         <select id="t-category">
@@ -386,7 +395,8 @@
 
         function openResolveModal(ticketId) {
             activeTicketId = ticketId;
-            document.getElementById('modal-ticket-id').innerText = ticketId;
+            const ticket = allTicketsData.find(t => t.id === ticketId);
+            document.getElementById('modal-ticket-id').innerText = ticket.olam_ticket_id;
             document.getElementById('resolve-modal').style.display = 'flex';
         }
 
@@ -486,7 +496,7 @@
                     list.innerHTML += `
                         <div style="border: 1px solid #e2e8f0; padding: 20px; border-radius: 8px; background: white; display: flex; justify-content: space-between; align-items: center;">
                             <div>
-                                <strong style="color: var(--cfm-blue);">ID: ${t.id} - ${t.issue_category} (${t.plant_location || 'Apapa'})</strong>
+                                <strong style="color: var(--cfm-blue);">ID: ${t.olam_ticket_id} - ${t.issue_category} (${t.plant_location || 'Apapa'})</strong>
                                 <p style="margin: 5px 0 0 0; font-size: 0.9em; color: #64748b;">${t.symptoms_description.substring(0,60)}...</p>
                             </div>
                             <div style="text-align: right;">
@@ -514,7 +524,7 @@
             return `
                 <div class="ticket-card" style="display: flex; flex-direction: column; justify-content: space-between; border: 1px solid #e2e8f0; padding: 20px; border-radius: 8px; background: white;">
                     <div>
-                        <strong style="color: var(--cfm-blue); font-size: 1.1em;">ID: ${t.id} - ${t.issue_category}</strong>
+                        <strong style="color: var(--cfm-blue); font-size: 1.1em;">ID: ${t.olam_ticket_id} - ${t.issue_category}</strong>
                         <div style="margin: 15px 0; font-size: 0.9em; color: #475569; line-height: 1.5;">
                             <strong>User:</strong> ${t.plaintiff_name} <span style="color: #94a3b8;">(${t.plaintiff_department})</span><br>
                             <strong>Location:</strong> ${t.plant_location || 'Apapa'}<br>
@@ -603,7 +613,7 @@
                     if (t.created_at && t.resolved_at) sla = ((new Date(t.resolved_at) - new Date(t.created_at)) / 3600000).toFixed(1) + 'h';
                     tbody.innerHTML += `
                         <tr style="border-bottom: 1px solid #eee;">
-                            <td style="padding: 12px;">${t.id}</td><td style="padding: 12px;">${t.issue_category}</td>
+                            <td style="padding: 12px;">${t.olam_ticket_id}</td><td style="padding: 12px;">${t.issue_category}</td>
                             <td style="padding: 12px;">${t.plaintiff_name}</td><td style="padding: 12px; ${statusColor}">${t.status}</td>
                             <td style="padding: 12px;">${sla}</td>
                         </tr>
