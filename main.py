@@ -125,8 +125,12 @@ def get_plant_abbr(location: str) -> str:
         "Tincan": "TC",
         "Ikorodu": "IKR",
         "Iganmu": "IG",
-        "Beachland": "BCL"
-        ""
+        "Kano": "KN",
+        "Port Harcourt": "PH",
+        "Kaduna": "KD",
+        "Ilorin": "ILR",
+        "Calabar": "CAL",
+        "Beachland": "BCH"
     }
     
     if location in abbr_map:
