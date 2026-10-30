@@ -32,7 +32,7 @@ def send_initial_email(ticket: models.Ticket, tech_emails: list):
     body = f"""
     A new ticket has been raised and is waiting in the {ticket.plant_location} Team Pool.
 
-    ID: {ticket.id}
+    ID: {ticket.olam_ticket_id}
     User: {ticket.plaintiff_name} ({ticket.plaintiff_department})
     Issue: {ticket.issue_category}
     Description: {ticket.symptoms_description}
@@ -45,7 +45,7 @@ def send_initial_email(ticket: models.Ticket, tech_emails: list):
 
 def send_resolution_email(ticket: models.Ticket):
     """Sends the RCA and fix directly to the user who raised the ticket."""
-    subject = f"Resolved IT Ticket #{ticket.id}"
+    subject = f"Resolved IT Ticket #{ticket.olam_ticket_id}"
     body = f"""
     Your IT ticket has been resolved by {ticket.assigned_tech_email}.
 
