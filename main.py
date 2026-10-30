@@ -118,6 +118,16 @@ def get_pool_name(location: str) -> str:
     # Generates a database string like "POOL-APAPA" to hold the unassigned ticket
     return f"POOL-{location.upper()}"
 
+def get_plant_abbr(location: str) -> str:
+    # Maps the full location to the ticket abbreviation
+    abbr_map = {
+        "Apapa": "AP",
+        "Tincan": "TC",
+        "Ikorodu": "IKR",
+        "Iganmu": "IG"
+    }
+    return abbr_map.get(location, "XX")
+
 
 # --- APPLICATION ROUTES ---
 @app.post("/tickets/", response_model=schemas.TicketOut, status_code=status.HTTP_201_CREATED)
@@ -127,7 +137,6 @@ def create_ticket(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-    # 1. Assign to the string database pool (e.g., POOL-APAPA)
     pool_assignment = get_pool_name(ticket.plant_location)
     
     db_ticket = models.Ticket(
@@ -136,22 +145,25 @@ def create_ticket(
     )
     db.add(db_ticket)
     db.commit()
+    db.refresh(db_ticket) # We refresh to get the auto-generated integer ID
+    
+    # Generate the custom ID: INC / Plant Abbr / 0 + integer ID
+    plant_abbr = get_plant_abbr(db_ticket.plant_location)
+    db_ticket.olam_ticket_id = f"INC/{plant_abbr}/0{db_ticket.id}"
+    
+    db.commit()
     db.refresh(db_ticket)
     
-    # 2. Dynamically scan database for local technicians ONLY (excluding admins)
     techs = db.query(models.User).filter(
         models.User.base_plant == ticket.plant_location,
         models.User.role == models.UserRole.TECH
     ).all()
     
-    # Extract just the email addresses into a list
     tech_emails = [tech.email for tech in techs]
     
-    # 3. Regional Fallback: If no local techs exist yet, route to central IT
     if not tech_emails:
         tech_emails = ["oluwatobiloba69@gmail.com"]
         
-    # 4. Fan-out email alert via background task
     background_tasks.add_task(email_service.send_initial_email, db_ticket, tech_emails)
     
     return db_ticket
