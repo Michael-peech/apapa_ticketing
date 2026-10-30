@@ -16,11 +16,11 @@ class Ticket(Base):
 
     # Core Identity
     id = Column(Integer, primary_key=True, index=True)
-    olam_ticket_id = Column(String, index=True, nullable=True) # e.g., INC0131583
+    olam_ticket_id = Column(String, unique=True, index=True, nullable=True) # e.g., INC/AP/01
 
     # Ingestion (User Portal)
-    plaintiff_name = Column(String, nullable=False)
-    plaintiff_email = Column(String, nullable=False)
+    plaintiff_name = Column(String, index=True, nullable=False)
+    plaintiff_email = Column(String, index=True, nullable=False)
     plaintiff_department = Column(String, default="General")
     plant_location = Column(String, default="Apapa")
     issue_category = Column(String, nullable=False)
